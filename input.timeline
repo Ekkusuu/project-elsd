@@ -1,0 +1,11 @@
+main {
+  for item in romanHistory {
+    if (item.year < 0) {
+      modify item {
+        importance = high;
+      };
+    }
+  };
+  
+  export romanHistory;
+};
