@@ -20,36 +20,88 @@ Timeline DSL is a **domain-specific language** designed to simplify the **creati
 
 ### **Example Timeline DSL Script**  
 ```dsl
-timeline history {
-    title = "World Wars Timeline";
-
-    event ww1 {
-        title = "World War I begins";
-        date = 1914;
-        importance = high;
-    };
-
-    event ww2 {
-        title = "World War II begins";
-        date = 1939;
-        importance = high;
-    };
-
-    period cold_war {
-        title = "Cold War";
-        start = 1947;
-        end = 1991;
-        importance = medium;
-    };
-
-    relationship ww1_ww2 {
-        from = ww1;
-        to = ww2;
-        type = cause-effect;
-    };
-
-    export history;
+// Define events
+event juliusCaesarBirth {
+    title = "Birth of Julius Caesar";
+    date = 12-07-100 BCE;
+    importance = medium;
 };
+
+event juliusCaesarDeath {
+    title = "Assassination of Julius Caesar";
+    date = 15-03-44 BCE;
+    importance = high;
+};
+
+event augustusEmpire {
+    title = "Augustus becomes first Roman Emperor";
+    date = 27 BCE;
+    importance = high;
+};
+
+event romanEmpireFall {
+    title = "Fall of Western Roman Empire";
+    date = 476 CE;
+    importance = high;
+};
+
+// Define periods
+period romanRepublic {
+    title = "Roman Republic";
+    start = 509 BCE;
+    end = 27 BCE;
+    importance = high;
+};
+
+period romanEmpire {
+    title = "Roman Empire";
+    start = 27 BCE;
+    end = 476 CE;
+    importance = high;
+};
+
+period juliusCaesarLife {
+    title = "Life of Julius Caesar";
+    start = 100 BCE;
+    end = 44 BCE;
+    importance = medium;
+};
+
+// Define relationships
+relationship caesarRepublic {
+    from = juliusCaesarDeath;
+    to = romanRepublic;
+    type = "contributed to end";
+};
+
+relationship augustusStartsEmpire {
+    from = augustusEmpire;
+    to = romanEmpire;
+    type = cause-effect;
+};
+
+// Create timeline
+timeline romanHistory {
+    title = "Roman History";
+    juliusCaesarBirth, juliusCaesarDeath, augustusEmpire, romanEmpireFall,
+    romanRepublic, romanEmpire, juliusCaesarLife;
+};
+
+// Main program
+main {
+    // Find all events in the first century BCE and increase their importance
+    for item in romanHistory {
+        if (item.date.year < 0) {
+            modify item {
+                importance = high;
+            };
+        }
+    };
+
+    // Compile and export the timeline
+    export romanHistory;
+};
+
 ```
 
 ### **Supported Date Formats**  
