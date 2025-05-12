@@ -1,0 +1,35 @@
+{
+    "timeline_id": "romanHistory",
+    "title": "History of Rome",
+    "events": [
+        {
+            "id": "E1",
+            "title": "Founding of Rome",
+            "date": -753,
+            "importance": "HIGH"
+        }
+    ],
+    "periods": [
+        {
+            "id": "p1",
+            "title": "Regele Cezar",
+            "start": -700,
+            "end": -650,
+            "importance": "LOW"
+        },
+        {
+            "id": "p2",
+            "title": "Regele Iulius",
+            "start": -600,
+            "end": -500,
+            "importance": "HIGH"
+        },
+        {
+            "id": "p3",
+            "title": "Regele Andrei",
+            "start": -650,
+            "end": -625,
+            "importance": "HIGH"
+        }
+    ]
+}
