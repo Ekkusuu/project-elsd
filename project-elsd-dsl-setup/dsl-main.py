@@ -14,11 +14,5 @@ walker = ParseTreeWalker()
 interpreter = TimelineInterpreter()
 walker.walk(interpreter, tree)
 
-# Print collected data
-print("Final Events Dictionary:")
-print(interpreter.events)
-print("Final Periods Dictionary:")
-print(interpreter.periods)
-print("Final timeline Dictionary")
-print(interpreter.timelines)
+
 

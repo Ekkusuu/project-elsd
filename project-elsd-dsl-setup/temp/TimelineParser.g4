@@ -19,7 +19,7 @@ dateExpr: fullDateLiteral | monthYearLiteral | yearLiteral | dateCalculation;
 
 dateCalculation: ID DOT (YEAR | MONTH | DAY) ADD_OP INT;
 
-yearLiteral: INT (BCE | CE)?;
+yearLiteral: DATE_LITERAL | INT;
 
 monthYearLiteral: INT DASH yearLiteral;
 
@@ -27,7 +27,7 @@ fullDateLiteral: INT DASH monthYearLiteral;
 
 importanceValue: HIGH | MEDIUM | LOW;
 
-relationshipType: CAUSE_EFFECT | CONTEMPORANEOUS | PRECEDES | FOLLOWS | INCLUDES | EXCLUDES | STRING;
+relationshipType: CAUSE_EFFECT | CONTEMPORANEOUS | PRECEDES | FOLLOWS | INCLUDES | EXCLUDES;
 
 mainBlock: MAIN LCURLY statement* RCURLY SEMI;
 

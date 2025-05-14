@@ -1,0 +1,62 @@
+{
+    "timeline_id": "punicWar",
+    "title": "First punic war",
+    "events": [
+        {
+            "id": "E1",
+            "title": "First Punic War Begins",
+            "date": {
+                "year": -264
+            },
+            "importance": "HIGH"
+        },
+        {
+            "id": "E2",
+            "title": "Battle of Agrigentum",
+            "date": {
+                "year": -262
+            },
+            "importance": "MEDIUM"
+        },
+        {
+            "id": "E3",
+            "title": "Battle of Mylae",
+            "date": {
+                "year": -260
+            },
+            "importance": "HIGH"
+        },
+        {
+            "id": "E4",
+            "title": "End of First Punic War",
+            "date": {
+                "year": -241
+            },
+            "importance": "HIGH"
+        }
+    ],
+    "periods": [
+        {
+            "id": "P1",
+            "title": "Roman Naval Dominance",
+            "start": {
+                "year": -260
+            },
+            "end": {
+                "year": -241
+            },
+            "importance": "MEDIUM"
+        },
+        {
+            "id": "P2",
+            "title": "Siege of Agrigentum",
+            "start": {
+                "year": -262
+            },
+            "end": {
+                "year": -261
+            },
+            "importance": "LOW"
+        }
+    ]
+}

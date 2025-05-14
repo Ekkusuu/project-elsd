@@ -52,7 +52,6 @@ RCURLY: '}';
 DASH: '-';
 ADD_OP: '+';
 
-
 LT: '<';
 GT: '>';
 LE: '<=';
@@ -60,7 +59,12 @@ GE: '>=';
 EQ_EQ: '==';
 NEQ: '!=';
 
+DATE_LITERAL: INT '-BCE' | INT '-CE';
 INT: [0-9]+;
 STRING: '"' (~["\\])* '"';
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
-WS: [ \t\n\r]+ -> skip;
+
+// Skip whitespace and comments
+WS: [ \t\r\n]+ -> skip;
+COMMENT: '//' ~[\r\n]* -> skip;
+BLOCK_COMMENT: '/*' .*? '*/' -> skip;

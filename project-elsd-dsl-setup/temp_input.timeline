@@ -61,17 +61,12 @@ relationship R4 {
 };
 
 relationship R5 {
-    from = E1;
-    to = P2;
+    from = P2;
+    to = E1;
     type = includes;
 };
 
 
-relationship R7 {
-    from = P1;
-    to = P2;
-    type = includes;
-};
 
 timeline punicWar {
     title = "First punic war"
