@@ -20,33 +20,36 @@ class TimelineInterpreter(TimelineParserVisitor):
         self.validation_errors = []
 
     def visitYearLiteral(self, ctx:TimelineParser.YearLiteralContext):
-        print(f"Visiting yearLiteral: {ctx.getText()}")
         year = int(ctx.INT().getText())
         if ctx.BCE():
             year = -year
-        return {"year": year}
+        return year
 
     def visitMonthYearLiteral(self, ctx:TimelineParser.MonthYearLiteralContext):
-        print(f"Visiting monthYearLiteral: {ctx.getText()}")
         month = int(ctx.INT().getText())
         year = self.visit(ctx.yearLiteral())
         return {"year": year, "month": month}
 
     def visitFullDateLiteral(self, ctx:TimelineParser.FullDateLiteralContext):
-        print(f"Visiting fullDateLiteral: {ctx.getText()}")
         day = int(ctx.INT().getText())
         month_year = self.visit(ctx.monthYearLiteral())
         return {"year": month_year["year"], "month": month_year["month"], "day": day}
 
     def visitDateExpr(self, ctx:TimelineParser.DateExprContext):
-        # print(f"Visiting dateExpr: {ctx.getText()}")
-        # Visit the first child which should be one of: yearLiteral, monthYearLiteral, fullDateLiteral, or dateCalculation
-        for child in ctx.children:
-            # print(f"Child type: {type(child)}")
-            result = self.visit(child)
-            if result is not None:
-                return result
-        # print("No matching date format found")
+        if ctx.yearLiteral():
+            year = self.visit(ctx.yearLiteral())
+            return {"year": year}
+            
+        if ctx.monthYearLiteral():
+            return self.visit(ctx.monthYearLiteral())
+            
+        if ctx.fullDateLiteral():
+            return self.visit(ctx.fullDateLiteral())
+            
+        if ctx.dateCalculation():
+            return self.visit(ctx.dateCalculation())
+            
+        print("No matching date format found")
         return None
 
     def validate_string_literal(self, text, field_name):
@@ -846,3 +849,4 @@ class TimelineInterpreter(TimelineParserVisitor):
             plt.close()
         else:
             plt.show()
+
