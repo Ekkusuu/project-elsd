@@ -16,6 +16,7 @@ class TimelineInterpreter(TimelineParserListener):
         self.relationships = {}
         self.already_exported = set()
         self.validation_errors = []
+        self.enabled_stack = [True]
 
     def parse_year_literal(self, raw):
         """
@@ -754,121 +755,207 @@ class TimelineInterpreter(TimelineParserListener):
         else:
             plt.show()
 
+    def enterIfStmt(self, ctx):
+        result = self.evaluate_condition(ctx.condition())
+        # push: only enabled if we were already enabled AND this condition is True
+        self.enabled_stack.append(self.enabled_stack[-1] and result)
+
+    def exitIfStmt(self, ctx):
+        # pop back to previous enabled/disabled state
+        self.enabled_stack.pop()
+
+    # ===== FOR handling (always stays in the same enabled state) =====
+    def enterForStmt(self, ctx):
+        # Loops don’t change “enabled” status
+        self.enabled_stack.append(self.enabled_stack[-1])
+        # Now actually execute the loop body in our interpreter
+        loopVar = ctx.ID(0).getText()
+        iterable = ctx.ID(1).getText()
+        items = self.timelines.get(iterable, {}).get("components", [])
+        for item in items:
+            # set loop variable if you need it
+            setattr(self, loopVar, item)
+            for stmt in ctx.statement():
+                self.handleStatement(stmt)
+
+    def exitForStmt(self, ctx):
+        self.enabled_stack.pop()
+
+    # ===== EXPORT handling (gated on enabled_stack) =====
     def enterExportStmt(self, ctx):
+        # If we’re currently disabled (inside if(false)…), skip!
+        if not self.enabled_stack[-1]:
+            return
+
         export_id = ctx.ID().getText()
         print(f"Export requested for: {export_id}")
 
         # Prevent duplicate exports
-        if hasattr(self, 'already_exported') is False:
-            self.already_exported = set()
-
         if export_id in self.already_exported:
             print(f"[Info] Skipping already exported: {export_id}")
             return
-
         self.already_exported.add(export_id)
 
-        # Export a timeline
+        # … rest of your existing export logic goes here …
         if export_id in self.timelines:
+            # timeline export
             timeline = self.timelines[export_id]
-            filename_png = f"{export_id}.png"
-            filename_json = f"{export_id}.json"
-
-            # Generate visualization
-            self.generate_visualization(export_id, save_path=filename_png)
-
-            # Collect export data
+            png = f"{export_id}.png"
+            jsonf = f"{export_id}.json"
+            self.generate_visualization(export_id, save_path=png)
             export_data = {
                 "timeline_id": export_id,
                 "title": timeline["title"],
-                "events": [],
-                "periods": []
+                "events": [], "periods": []
             }
-
             for cid in timeline["components"]:
                 if cid in self.events:
                     export_data["events"].append({"id": cid, **self.events[cid]})
                 elif cid in self.periods:
                     export_data["periods"].append({"id": cid, **self.periods[cid]})
-
-            with open(filename_json, "w", encoding="utf-8") as f:
+            with open(jsonf, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, indent=4)
+            print(f"[Exported] Timeline image saved to {png}")
+            print(f"[Exported] Timeline '{export_id}' → {jsonf}")
 
-            print(f"[Exported] Timeline image saved to {filename_png}")
-            print(f"[Exported] Timeline '{export_id}' → {filename_json}")
-
-        # Export an event
         elif export_id in self.events:
-            filename = f"{export_id}.json"
-            with open(filename, "w", encoding="utf-8") as f:
+            # event export
+            jsonf = f"{export_id}.json"
+            with open(jsonf, "w", encoding="utf-8") as f:
                 json.dump({"id": export_id, **self.events[export_id]}, f, indent=4)
-            print(f"[Exported] Event '{export_id}' → {filename}")
+            print(f"[Exported] Event '{export_id}' → {jsonf}")
 
-        # Export a period
         elif export_id in self.periods:
-            filename = f"{export_id}.json"
-            with open(filename, "w", encoding="utf-8") as f:
+            # period export
+            jsonf = f"{export_id}.json"
+            with open(jsonf, "w", encoding="utf-8") as f:
                 json.dump({"id": export_id, **self.periods[export_id]}, f, indent=4)
-            print(f"[Exported] Period '{export_id}' → {filename}")
+            print(f"[Exported] Period '{export_id}' → {jsonf}")
 
-        # Unknown ID
         else:
             print(f"[Warning] ID '{export_id}' not found.")
 
-    def enterIfStmt(self, ctx):
-        result = self.evaluate_condition(ctx.condition())
-
-        if result:
-            for stmt in ctx.statement():
-                self.handleStatement(stmt)
-        elif ctx.ELSE():
-            else_block = ctx.getChild(6)  # The ELSE block is always the 7th child
-            for stmt in else_block.statement():
-                self.handleStatement(stmt)
-
     def handleStatement(self, ctx):
+        # EXPORT
         if ctx.exportStmt():
             self.enterExportStmt(ctx.exportStmt())
+
+        # IF
         elif ctx.ifStmt():
-            self.enterIfStmt(ctx.ifStmt())
+            if_ctx = ctx.ifStmt()
+            # 1) evaluate and push
+            result = self.evaluate_condition(if_ctx.condition())
+            # combine with current stack top
+            self.enabled_stack.append(self.enabled_stack[-1] and result)
+
+            # 2) run the 'then' block
+            for st in if_ctx.statement():
+                self.handleStatement(st)
+
+            # 3) pop back out of the if
+            self.enabled_stack.pop()
+
+            # 4) if there's an ELSE, evaluate that separately
+            if if_ctx.ELSE():
+                # ELSE block is child index 6…8 in your grammar, but easiest is:
+                else_stmts = if_ctx.getChild(6).statement()
+                # ELSE inherits the *negation* of the then‑condition
+                self.enabled_stack.append(self.enabled_stack[-1] and not result)
+                for st in else_stmts:
+                    self.handleStatement(st)
+                self.enabled_stack.pop()
+
+        # FOR
+        elif ctx.forStmt():
+            for_ctx = ctx.forStmt()
+            # push same enabled state
+            self.enabled_stack.append(self.enabled_stack[-1])
+
+            loop_var = for_ctx.ID(0).getText()
+            iterable = for_ctx.ID(1).getText()
+            items = self.timelines.get(iterable, {}).get("components", [])
+
+            for item in items:
+                # bind the loop variable (if you need it later)
+                setattr(self, loop_var, item)
+                for st in for_ctx.statement():
+                    self.handleStatement(st)
+
+            self.enabled_stack.pop()
+
+        # MODIFY (if you have it)
         elif ctx.modifyStmt():
             self.enterModifyStmt(ctx.modifyStmt())
-        elif ctx.forStmt():
-            self.enterForStmt(ctx.forStmt())
+
+        # empty semicolon
+        else:
+            pass
 
     def enterMainBlock(self, ctx):
         for stmt in ctx.statement():
             self.handleStatement(stmt)
 
+
+
     def evaluate_condition(self, ctx):
-        # Case: expr OP expr
+        # comparison: expr OP expr
         if ctx.comparisonOp():
-            left = self.evaluate_expr(ctx.expr(0))
+            left  = self.evaluate_expr(ctx.expr(0))
             right = self.evaluate_expr(ctx.expr(1))
-            op = ctx.comparisonOp().getText()
+            op    = ctx.comparisonOp().getText()
             return self.apply_comparison(left, right, op)
+
+        # single‑ID: true if it names an existing event _or_ period
         elif ctx.ID():
-            return ctx.ID().getText() in self.events or self.periods
+            name = ctx.ID().getText()
+            present = (name in self.events) or (name in self.periods)
+            return bool(present)
+
+        # literal true/false
         elif ctx.booleanLiteral():
             return ctx.booleanLiteral().getText().lower() == "true"
+
+        # fallback: explicitly False
         return False
 
     def evaluate_expr(self, ctx):
+        # 1) dateExpr → year only
+        if ctx.dateExpr():
+            raw    = ctx.dateExpr().getText()
+            parsed = self.parse_year_literal(raw)
+            if parsed and "year" in parsed:
+                return parsed["year"]
+
+        # 2) ID.property
         if ctx.ID() and ctx.property_():
             obj_id = ctx.ID().getText()
-            prop = ctx.property_().getText().lower()
+            prop   = ctx.property_().getText().lower()
 
-            # Check events
+            # look up the raw value
             if obj_id in self.events and prop in self.events[obj_id]:
-                return self.events[obj_id][prop]
-            if obj_id in self.periods and prop in self.periods[obj_id]:
-                return self.periods[obj_id][prop]
-        elif ctx.STRING():
+                val = self.events[obj_id][prop]
+            elif obj_id in self.periods and prop in self.periods[obj_id]:
+                val = self.periods[obj_id][prop]
+            else:
+                val = None
+
+            # if it’s a date‐dict, pull out the year
+            if isinstance(val, dict) and "year" in val:
+                return val["year"]
+            return val
+
+        # 3) STRING
+        if ctx.STRING():
             return ctx.STRING().getText().strip('"')
-        elif ctx.INT():
+
+        # 4) bare INT
+        if ctx.INT():
             return int(ctx.INT().getText())
-        elif ctx.importanceValue():
+
+        # 5) importanceValue
+        if ctx.importanceValue():
             return ctx.importanceValue().getText().upper()
+
         return None
 
     def apply_comparison(self, left, right, op):

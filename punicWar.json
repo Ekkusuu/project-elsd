@@ -1,0 +1,23 @@
+{
+    "timeline_id": "punicWar",
+    "title": "First punic war",
+    "events": [
+        {
+            "id": "E1",
+            "title": "First Punic War Begins",
+            "date": {
+                "year": 264
+            },
+            "importance": "HIGH"
+        },
+        {
+            "id": "E2",
+            "title": "First Punic War Begins",
+            "date": {
+                "year": 500
+            },
+            "importance": "HIGH"
+        }
+    ],
+    "periods": []
+}

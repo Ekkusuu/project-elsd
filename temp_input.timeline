@@ -1,0 +1,20 @@
+event E1 {
+    title = "First Punic War Begins";
+    date = 264;
+    importance = high;
+};
+event E2 {
+    title = "First Punic War Begins";
+    date = 500;
+    importance = high;
+};
+
+timeline punicWar {
+    title = "First punic war";
+    E1,E2;;
+};
+
+main {
+
+export punicWar;
+};
