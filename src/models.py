@@ -1,7 +1,11 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
-from datetime import datetime
+from typing import Dict, List, Optional
 import json
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numpy as np
+from collections import defaultdict
+
 
 @dataclass
 class Date:
@@ -10,39 +14,33 @@ class Date:
     day: Optional[int] = None
 
     def __init__(self, date_dict: Dict):
-        # Validate required year
         if 'year' not in date_dict:
             raise ValueError("Year is required")
         
         self.year = date_dict.get('year')
         self.month = date_dict.get('month')
         self.day = date_dict.get('day')
-        
-        # Validate year
+
         if not isinstance(self.year, int):
             raise ValueError("Year must be an integer")
-        
-        # Validate month if provided
+
         if self.month is not None:
             if not isinstance(self.month, int):
                 raise ValueError("Month must be an integer")
             if not 1 <= self.month <= 12:
                 raise ValueError("Month must be between 1 and 12")
-                
-        # Validate day if provided
+
         if self.day is not None:
             if not isinstance(self.day, int):
                 raise ValueError("Day must be an integer")
             if self.month is None:
                 raise ValueError("Cannot specify day without month")
-            
-            # Get days in month (accounting for leap years)
+
             days_in_month = self._days_in_month(self.year, self.month)
             if not 1 <= self.day <= days_in_month:
                 raise ValueError(f"Day must be between 1 and {days_in_month} for month {self.month}")
 
     def _days_in_month(self, year: int, month: int) -> int:
-        """Calculate the number of days in a given month of a year."""
         days_per_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
         
         if month == 2 and self._is_leap_year(year):
@@ -51,7 +49,6 @@ class Date:
         return days_per_month[month]
 
     def _is_leap_year(self, year: int) -> bool:
-        """Determine if a year is a leap year."""        
         calc_year = year if year > 0 else abs(year) + 1
         
         # Leap year rules:
@@ -60,18 +57,14 @@ class Date:
         return calc_year % 4 == 0 and (calc_year % 100 != 0 or calc_year % 400 == 0)
 
     def __str__(self) -> str:
-        """Return a human-readable string representation of the date."""
         parts = []
-        
-        # Add day if available
+
         if self.day is not None:
             parts.append(f"{self.day}")
-            
-        # Add month if available
+
         if self.month is not None:
             parts.append(f"{self.month}")
-            
-        # Add year with BCE/CE
+
         year_str = f"{abs(self.year)}"
         if self.year < 0:
             year_str += " BCE"
@@ -228,7 +221,6 @@ class Relationship:
         self._type = clean_value
 
     def validate_relationship(self):
-        # Add specific validation rules for each relationship type
         if self.type == "INCLUDES":
             if not isinstance(self.from_component, Period):
                 raise ValueError("'INCLUDES' relationship requires a Period as the 'from' component")
@@ -243,6 +235,10 @@ class Relationship:
 
 
 class Timeline:
+    HIGH_COLORS = ["#1E90FF", "#007FFF", "#3399FF", "#0055FF", "#4682B4", "#4169E1", "#0000CD", "#0000FF"]
+    MEDIUM_COLORS = ["#00FF00", "#32CD32", "#3CB371", "#2ECC71", "#228B22", "#66FF66", "#7CFC00", "#20C997"]
+    LOW_COLORS = ["#FFD700", "#FFC300", "#FFB000", "#FFA500", "#FF8C00", "#FF7F50", "#FF6F00", "#FF4500"]
+
     def __init__(self, id: str, title: str, components: List[TimelineComponent]):
         self.id = id
         self.title = title
@@ -252,6 +248,200 @@ class Timeline:
     def validate_components(self):
         if not self.components:
             raise ValueError("Timeline must have at least one component")
+
+    def _get_date_range(self):
+        dates = []
+        for comp in self.components:
+            if isinstance(comp, Event):
+                dates.append(comp.date)
+            elif isinstance(comp, Period):
+                dates.extend([comp.start, comp.end])
+        return min(dates), max(dates)
+
+    def _calculate_levels(self, components):
+        sorted_comps = sorted(
+            components,
+            key=lambda x: x.date.year if isinstance(x, Event) else x.start.year
+        )
+
+        # Group components by year
+        year_groups = defaultdict(list)
+        for comp in sorted_comps:
+            year = comp.date.year if isinstance(comp, Event) else comp.start.year
+            year_groups[year].append(comp)
+
+        # Calculate levels for each component
+        levels = {}
+        unique_years = sorted(year_groups.keys())
+        
+        for i, year in enumerate(unique_years):
+            comps_in_year = year_groups[year]
+            base_level = 1.0 if i % 2 == 0 else -1.0
+            
+            # Adjust level based on importance
+            for j, comp in enumerate(comps_in_year):
+                if len(comps_in_year) > 1:
+                    # If multiple components in the same year, stack them
+                    level = base_level * (1 + 0.5 * j)
+                else:
+                    level = base_level
+                    
+                # Adjust level based on importance
+                importance_factor = {
+                    "HIGH": 1.2,
+                    "MEDIUM": 1.0,
+                    "LOW": 0.8
+                }
+                level *= importance_factor[comp.importance]
+                levels[comp] = level
+
+        return levels
+
+    def export_png(self, filename: str = None):
+        if filename is None:
+            filename = f"{self.id}.png"
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=(15, 8), layout='constrained')
+        
+        # Get date range
+        min_date, max_date = self._get_date_range()
+        year_span = max_date.year - min_date.year
+        margin = year_span * 0.05  # 5% margin
+        ax.set_xlim(min_date.year - margin, max_date.year + margin)
+
+        # Calculate levels for components
+        levels = self._calculate_levels(self.components)
+
+        # Draw baseline
+        ax.axhline(0, color='black', linewidth=1.5, zorder=1)
+
+        # Sort components for drawing
+        sorted_components = sorted(
+            self.components,
+            key=lambda x: (
+                x.date.year if isinstance(x, Event) else x.start.year,
+                -["HIGH", "MEDIUM", "LOW"].index(x.importance)
+            )
+        )
+
+        # Track used positions for periods
+        period_positions = []
+        legend_entries = []
+
+        # Color management
+        color_indices = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
+        color_sets = {"HIGH": self.HIGH_COLORS, "MEDIUM": self.MEDIUM_COLORS, "LOW": self.LOW_COLORS}
+
+        def get_next_color(importance):
+            idx = color_indices[importance]
+            color_list = color_sets[importance]
+            color = color_list[idx % len(color_list)]
+            color_indices[importance] += 1
+            return color
+
+        # Draw components
+        for component in sorted_components:
+            color = get_next_color(component.importance)
+            level = levels[component]
+
+            if isinstance(component, Event):
+                # Draw vertical line (stem)
+                ax.vlines(component.date.year, 0, level, color=color, linewidth=1.5, zorder=2)
+                
+                # Draw marker on baseline
+                ax.plot(component.date.year, 0, 'o', color=color, 
+                       markersize=8, markeredgecolor='black', zorder=3)
+                
+                # Add label
+                ax.annotate(
+                    component.title,
+                    xy=(component.date.year, level),
+                    xytext=(0, np.sign(level) * 5),
+                    textcoords='offset points',
+                    ha='center',
+                    va='bottom' if level > 0 else 'top',
+                    fontsize=10,
+                    fontweight='bold' if component.importance == "HIGH" else 'normal',
+                    bbox=dict(
+                        boxstyle='round,pad=0.5',
+                        fc='white',
+                        ec=color,
+                        alpha=0.8,
+                        lw=1
+                    ),
+                    zorder=4
+                )
+
+                # Add to legend
+                legend_entries.append((
+                    patches.Circle((0, 0), fc=color, ec='black'),
+                    f"{component.title} ({component.date.year})"
+                ))
+
+            elif isinstance(component, Period):
+                # Draw period bar
+                period_height = 0.1
+                rect = patches.Rectangle(
+                    (component.start.year, -period_height/2),
+                    component.end.year - component.start.year,
+                    period_height,
+                    facecolor=color,
+                    alpha=0.7,
+                    zorder=2
+                )
+                ax.add_patch(rect)
+
+                # Add period label
+                mid_year = (component.start.year + component.end.year) / 2
+                ax.annotate(
+                    component.title,
+                    xy=(mid_year, -period_height),
+                    xytext=(0, -15),
+                    textcoords='offset points',
+                    ha='center',
+                    va='top',
+                    fontsize=10,
+                    fontweight='bold' if component.importance == "HIGH" else 'normal',
+                    bbox=dict(
+                        boxstyle='round,pad=0.5',
+                        fc='white',
+                        ec=color,
+                        alpha=0.8,
+                        lw=1
+                    ),
+                    zorder=4
+                )
+
+                # Add to legend
+                legend_entries.append((
+                    patches.Rectangle((0, 0), 1, 1, fc=color, alpha=0.7),
+                    f"{component.title} ({component.start.year} → {component.end.year})"
+                ))
+
+        # Configure axes
+        ax.yaxis.set_visible(False)
+        ax.spines[['left', 'top', 'right']].set_visible(False)
+        
+        # Set title
+        ax.set_title(self.title, fontsize=14, fontweight='bold', pad=20)
+
+        # Add legend
+        if legend_entries:
+            ax.legend(
+                *zip(*legend_entries),
+                loc='center left',
+                bbox_to_anchor=(1.05, 0.5),
+                fontsize=10,
+                frameon=True,
+                framealpha=0.8,
+                title="Timeline Components"
+            )
+
+        # Adjust layout and save
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.close()
 
     def to_dict(self) -> dict:
         return {
@@ -265,6 +455,3 @@ class Timeline:
             filename = f"{self.id}.json"
         with open(filename, 'w') as f:
             json.dump(self.to_dict(), f, indent=2)
-
-    def export_png(self):
-        pass
