@@ -249,6 +249,16 @@ class Timeline:
         if not self.components:
             raise ValueError("Timeline must have at least one component")
 
+    def _date_to_decimal(self, date):
+        """Convert a Date object to a decimal year for precise positioning"""
+        year = date.year
+        if date.month is not None:
+            year += (date.month - 1) / 12
+            if date.day is not None:
+                days_in_month = date._days_in_month(date.year, date.month)
+                year += (date.day - 1) / (days_in_month * 12)
+        return year
+
     def _get_date_range(self):
         dates = []
         for comp in self.components:
@@ -257,6 +267,133 @@ class Timeline:
             elif isinstance(comp, Period):
                 dates.extend([comp.start, comp.end])
         return min(dates), max(dates)
+
+    def _calculate_tick_interval(self, min_date, max_date):
+        """Calculate appropriate tick interval based on date range"""
+        total_span = self._date_to_decimal(max_date) - self._date_to_decimal(min_date)
+        
+        # Calculate desired number of ticks based on timeline width
+        # Aim for roughly one tick every 100 pixels (assuming default figure width of 15 inches * 100 DPI)
+        target_ticks = 15 * 100 / 100  # 15 inches * 100 DPI / 100 pixels per tick
+        
+        if total_span <= 1/12:  # Less than a month
+            if total_span <= 1/24:  # Less than 15 days
+                return "days_dense"  # Show every day
+            return "days"  # Show every other day
+        elif total_span <= 1:  # Less than a year
+            if total_span <= 1/4:  # Less than 3 months
+                return "weeks"  # Show weeks
+            return "months"  # Show months
+        elif total_span <= 5:  # 1-5 years
+            if total_span <= 2:  # 1-2 years
+                return "months_dense"  # Show all months
+            return "months_selective"  # Show quarterly
+        elif total_span <= 20:  # 5-20 years
+            if total_span <= 10:  # 5-10 years
+                return "years_dense"  # Show all years
+            return "years"  # Show every other year
+        elif total_span <= 100:  # 20-100 years
+            return "years_5"  # Show every 5 years
+        else:
+            return "years_10"  # Show every 10 years
+
+    def _generate_ticks(self, min_date, max_date, interval_type):
+        """Generate tick positions and labels based on interval type"""
+        start_year = self._date_to_decimal(min_date)
+        end_year = self._date_to_decimal(max_date)
+        ticks = []
+        
+        if interval_type in ["days", "days_dense"]:
+            # Generate daily ticks
+            current = Date({"year": min_date.year, "month": min_date.month, "day": min_date.day})
+            step = 1 if interval_type == "days_dense" else 2
+            
+            while current <= max_date:
+                pos = self._date_to_decimal(current)
+                # Show month/day on first day of month or if dense
+                if current.day == 1 or interval_type == "days_dense":
+                    label = f"{current.month}/{current.day}"
+                else:
+                    label = f"{current.day}"
+                ticks.append((pos, label))
+                
+                # Move to next day(s)
+                for _ in range(step):
+                    if current.day < current._days_in_month(current.year, current.month):
+                        current = Date({"year": current.year, "month": current.month, "day": current.day + 1})
+                    else:
+                        if current.month == 12:
+                            current = Date({"year": current.year + 1, "month": 1, "day": 1})
+                        else:
+                            current = Date({"year": current.year, "month": current.month + 1, "day": 1})
+                            
+        elif interval_type == "weeks":
+            # Generate weekly ticks
+            current = Date({"year": min_date.year, "month": min_date.month, "day": min_date.day})
+            while current <= max_date:
+                pos = self._date_to_decimal(current)
+                label = f"{current.month}/{current.day}"
+                ticks.append((pos, label))
+                
+                # Move to next week
+                for _ in range(7):
+                    if current.day < current._days_in_month(current.year, current.month):
+                        current = Date({"year": current.year, "month": current.month, "day": current.day + 1})
+                    else:
+                        if current.month == 12:
+                            current = Date({"year": current.year + 1, "month": 1, "day": 1})
+                        else:
+                            current = Date({"year": current.year, "month": current.month + 1, "day": 1})
+                            
+        elif interval_type in ["months", "months_dense", "months_selective"]:
+            # Generate monthly ticks
+            current = Date({"year": min_date.year, "month": min_date.month})
+            while current <= max_date:
+                pos = self._date_to_decimal(current)
+                show_tick = (
+                    interval_type == "months_dense" or
+                    interval_type == "months" or
+                    (interval_type == "months_selective" and current.month in [1, 4, 7, 10])
+                )
+                
+                if show_tick:
+                    if current.month == 1:
+                        label = f"{current.year}"
+                    else:
+                        label = f"{current.month}/{current.year}"
+                    ticks.append((pos, label))
+                
+                # Move to next month
+                if current.month == 12:
+                    current = Date({"year": current.year + 1, "month": 1})
+                else:
+                    current = Date({"year": current.year, "month": current.month + 1})
+                    
+        elif interval_type in ["years", "years_dense"]:
+            # Generate yearly ticks
+            step = 1 if interval_type == "years_dense" else 2
+            for year in range(min_date.year, max_date.year + 1, step):
+                pos = year
+                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                ticks.append((pos, label))
+                
+        elif interval_type == "years_5":
+            # Generate ticks every 5 years
+            start_year = min_date.year - (min_date.year % 5)
+            for year in range(start_year, max_date.year + 5, 5):
+                pos = year
+                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                ticks.append((pos, label))
+                
+        else:  # years_10
+            # Generate ticks every 10 years
+            start_year = min_date.year - (min_date.year % 10)
+            for year in range(start_year, max_date.year + 10, 10):
+                pos = year
+                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                ticks.append((pos, label))
+                
+        return ticks
 
     def _calculate_levels(self, components):
         # Sort components by date
@@ -374,12 +511,16 @@ class Timeline:
         # Create figure with extra space at bottom for legend
         fig, ax = plt.subplots(figsize=(15, 10), layout='constrained')
         
-        # Get date range
+        # Get date range and convert to decimal years for precise positioning
         min_date, max_date = self._get_date_range()
-        year_span = max_date.year - min_date.year
-        margin = year_span * 0.05  # 5% margin
-        xlim_min = min_date.year - margin
-        xlim_max = max_date.year + margin
+        min_pos = self._date_to_decimal(min_date)
+        max_pos = self._date_to_decimal(max_date)
+        
+        # Calculate margins - use smaller margins for dense timelines
+        span = max_pos - min_pos
+        margin = min(span * 0.05, 0.5)  # Either 5% of span or 0.5 units, whichever is smaller
+        xlim_min = min_pos - margin
+        xlim_max = max_pos + margin
         ax.set_xlim(xlim_min, xlim_max)
 
         # Calculate levels for components
@@ -405,35 +546,32 @@ class Timeline:
         ax.annotate('', xy=(xlim_max, 0), xytext=(xlim_max - margin/2, 0),
                    arrowprops=arrow_props, zorder=2)
 
-        # Configure year ticks
-        tick_years = list(range(
-            int(min_date.year - min_date.year % 5),  # Round to nearest 5
-            int(max_date.year + 5 - max_date.year % 5),  # Round to nearest 5
-            5  # Step by 5 years
-        ))
+        # Determine and add appropriate tick marks
+        interval_type = self._calculate_tick_interval(min_date, max_date)
+        ticks = self._generate_ticks(min_date, max_date, interval_type)
         
-        # Add year labels on the main axis
-        for year in tick_years:
-            if xlim_min <= year <= xlim_max:
+        # Add tick marks and labels
+        for pos, label in ticks:
+            if xlim_min <= pos <= xlim_max:
                 # Draw tick mark
-                ax.plot([year, year], [-0.1, 0.1], color='black', linewidth=1, zorder=1)
+                ax.plot([pos, pos], [-0.1, 0.1], color='black', linewidth=1, zorder=1)
                 
-                # Add year label
-                year_str = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
-                ax.annotate(year_str, 
-                          xy=(year, 0),
+                # Add label
+                ax.annotate(label, 
+                          xy=(pos, 0),
                           xytext=(0, -15),
                           textcoords='offset points',
                           ha='center',
                           va='top',
                           fontsize=9,
+                          rotation=45 if interval_type in ["months", "months_selective", "days"] else 0,
                           zorder=1)
 
         # Sort components for drawing
         sorted_components = sorted(
             self.components,
             key=lambda x: (
-                x.date.year if isinstance(x, Event) else x.start.year,
+                self._date_to_decimal(x.date if isinstance(x, Event) else x.start),
                 -["HIGH", "MEDIUM", "LOW"].index(x.importance)
             )
         )
@@ -474,17 +612,20 @@ class Timeline:
 
             if isinstance(component, Event):
                 level = levels[component]
+                # Convert date to decimal for precise positioning
+                pos = self._date_to_decimal(component.date)
+                
                 # Draw vertical line (stem)
-                ax.vlines(component.date.year, 0, level, color=color, linewidth=1.5, zorder=2)
+                ax.vlines(pos, 0, level, color=color, linewidth=1.5, zorder=2)
                 
                 # Draw marker on baseline
-                ax.plot(component.date.year, 0, 'o', color=color, 
+                ax.plot(pos, 0, 'o', color=color, 
                        markersize=8, markeredgecolor='black', zorder=3)
                 
                 # Add label
                 ax.annotate(
                     component.title,
-                    xy=(component.date.year, level),
+                    xy=(pos, level),
                     xytext=(0, np.sign(level) * 5),
                     textcoords='offset points',
                     ha='center',
@@ -501,12 +642,11 @@ class Timeline:
                     zorder=4
                 )
 
-                # Format year for legend
-                year = component.date.year
-                year_str = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                # Format date for legend
+                date_str = str(component.date)
                 legend_entries.append((
                     patches.Circle((0, 0), fc=color, ec='black'),
-                    f"{component.title} ({year_str})"
+                    f"{component.title} ({date_str})"
                 ))
 
             elif isinstance(component, Period):
@@ -514,10 +654,14 @@ class Timeline:
                 y_pos = period_positions[component]
                 period_height = 0.15
                 
+                # Convert dates to decimal for precise positioning
+                start_pos = self._date_to_decimal(component.start)
+                end_pos = self._date_to_decimal(component.end)
+                
                 # Draw period bar
                 rect = patches.Rectangle(
-                    (component.start.year, -period_height/2 - y_pos),
-                    component.end.year - component.start.year,
+                    (start_pos, -period_height/2 - y_pos),
+                    end_pos - start_pos,
                     period_height,
                     facecolor=color,
                     alpha=0.7,
@@ -526,16 +670,16 @@ class Timeline:
                 ax.add_patch(rect)
 
                 # Add period label
-                mid_year = (component.start.year + component.end.year) / 2
+                mid_pos = (start_pos + end_pos) / 2
                 label_level = levels[component]
                 
                 # Draw connecting line from period to label
-                ax.vlines(mid_year, -period_height/2 - y_pos, label_level, 
+                ax.vlines(mid_pos, -period_height/2 - y_pos, label_level, 
                          color=color, linestyle='--', linewidth=1, alpha=0.5, zorder=2)
                 
                 ax.annotate(
                     component.title,
-                    xy=(mid_year, label_level),
+                    xy=(mid_pos, label_level),
                     xytext=(0, -5),
                     textcoords='offset points',
                     ha='center',
@@ -552,11 +696,9 @@ class Timeline:
                     zorder=4
                 )
 
-                # Format years for legend
-                start_year = component.start.year
-                end_year = component.end.year
-                start_str = f"{abs(start_year)} {'BCE' if start_year < 0 else 'CE'}"
-                end_str = f"{abs(end_year)} {'BCE' if end_year < 0 else 'CE'}"
+                # Format dates for legend
+                start_str = str(component.start)
+                end_str = str(component.end)
                 legend_entries.append((
                     patches.Rectangle((0, 0), 1, 1, fc=color, alpha=0.7),
                     f"{component.title} ({start_str} → {end_str})"
