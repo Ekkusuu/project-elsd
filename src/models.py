@@ -346,8 +346,8 @@ class Timeline:
         if filename is None:
             filename = f"{self.id}.png"
 
-        # Create figure
-        fig, ax = plt.subplots(figsize=(15, 8), layout='constrained')
+        # Create figure with extra space at bottom for legend
+        fig, ax = plt.subplots(figsize=(15, 10), layout='constrained')
         
         # Get date range
         min_date, max_date = self._get_date_range()
@@ -455,9 +455,12 @@ class Timeline:
                     zorder=4
                 )
 
+                # Format year for legend
+                year = component.date.year
+                year_str = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
                 legend_entries.append((
                     patches.Circle((0, 0), fc=color, ec='black'),
-                    f"{component.title} ({component.date.year})"
+                    f"{component.title} ({year_str})"
                 ))
 
             elif isinstance(component, Period):
@@ -500,9 +503,14 @@ class Timeline:
                     zorder=4
                 )
 
+                # Format years for legend
+                start_year = component.start.year
+                end_year = component.end.year
+                start_str = f"{abs(start_year)} {'BCE' if start_year < 0 else 'CE'}"
+                end_str = f"{abs(end_year)} {'BCE' if end_year < 0 else 'CE'}"
                 legend_entries.append((
                     patches.Rectangle((0, 0), 1, 1, fc=color, alpha=0.7),
-                    f"{component.title} ({component.start.year} → {component.end.year})"
+                    f"{component.title} ({start_str} → {end_str})"
                 ))
 
         # Configure axes
@@ -513,16 +521,18 @@ class Timeline:
         # Set title
         ax.set_title(self.title, fontsize=14, fontweight='bold', pad=20)
 
-        # Add legend
+        # Add legend at the bottom
         if legend_entries:
+            # Calculate number of columns based on number of entries
+            ncol = min(2, len(legend_entries))  # Maximum 3 columns
             ax.legend(
                 *zip(*legend_entries),
-                loc='center left',
-                bbox_to_anchor=(1.05, 0.5),
+                loc='upper center',
+                bbox_to_anchor=(0.5, -0.1),
                 fontsize=10,
                 frameon=True,
                 framealpha=0.8,
-                title="Timeline Components"
+                ncol=ncol
             )
 
         plt.savefig(filename, dpi=300, bbox_inches='tight')
