@@ -259,41 +259,86 @@ class Timeline:
         return min(dates), max(dates)
 
     def _calculate_levels(self, components):
+        # Sort components by date
         sorted_comps = sorted(
             components,
-            key=lambda x: x.date.year if isinstance(x, Event) else x.start.year
+            key=lambda x: (x.date.year if isinstance(x, Event) else x.start.year,
+                         x.date.month if isinstance(x, Event) and x.date.month else 0,
+                         x.date.day if isinstance(x, Event) and x.date.day else 0)
         )
 
-        # Group components by year
-        year_groups = defaultdict(list)
-        for comp in sorted_comps:
-            year = comp.date.year if isinstance(comp, Event) else comp.start.year
-            year_groups[year].append(comp)
-
-        # Calculate levels for each component
+        # Initialize levels dictionary
         levels = {}
-        unique_years = sorted(year_groups.keys())
         
-        for i, year in enumerate(unique_years):
-            comps_in_year = year_groups[year]
-            base_level = 1.0 if i % 2 == 0 else -1.0
-            
-            # Adjust level based on importance
-            for j, comp in enumerate(comps_in_year):
-                if len(comps_in_year) > 1:
-                    # If multiple components in the same year, stack them
-                    level = base_level * (1 + 0.5 * j)
-                else:
-                    level = base_level
-                    
+        # Constants for layout
+        EVENT_LABEL_WIDTH = 2  # Approximate width of event label in years
+        PERIOD_LABEL_WIDTH = 3  # Approximate width of period label in years
+        MIN_GAP = 1  # Minimum gap between labels in years
+        
+        # Helper function to check overlap between any two labels
+        def has_overlap(pos1, width1, pos2, width2, level1, level2):
+            if abs(level1 - level2) > 1:  # If levels are far apart, no overlap
+                return False
+            # Check for overlap considering widths
+            return not (pos1 + width1/2 + MIN_GAP < pos2 - width2/2 or 
+                       pos2 + width2/2 + MIN_GAP < pos1 - width1/2)
+
+        # Helper function to check if a position overlaps with existing labels
+        def check_position_overlap(pos, width, level, existing_positions):
+            return any(has_overlap(pos, width, 
+                                 other_pos, other_width,
+                                 level, other_level) 
+                     for other_pos, other_width, other_level in existing_positions)
+
+        # Keep track of all label positions (pos, width, level)
+        label_positions = []
+
+        # First pass: assign levels for events and store periods
+        periods = []
+        for comp in sorted_comps:
+            if isinstance(comp, Event):
+                # Start with level 1 (above timeline)
+                current_level = 1
+                pos = comp.date.year
+                
+                # Check for overlaps with existing labels
+                while check_position_overlap(pos, EVENT_LABEL_WIDTH, current_level, label_positions):
+                    # If current level is positive, try negative
+                    if current_level > 0:
+                        current_level = -current_level
+                    # If current level is negative, try next positive
+                    else:
+                        current_level = -current_level + 1
+                
                 # Adjust level based on importance
                 importance_factor = {
                     "HIGH": 1.2,
                     "MEDIUM": 1.0,
                     "LOW": 0.8
                 }
-                level *= importance_factor[comp.importance]
-                levels[comp] = level
+                final_level = current_level * importance_factor[comp.importance]
+                levels[comp] = final_level
+                
+                # Add to label positions
+                label_positions.append((pos, EVENT_LABEL_WIDTH, final_level))
+            else:
+                periods.append(comp)
+                levels[comp] = 0  # Periods stay at baseline
+
+        # Second pass: assign levels for period labels
+        for period in periods:
+            mid_year = (period.start.year + period.end.year) / 2
+            
+            # Start with level -1 (below timeline)
+            current_level = -1
+            
+            # Check overlaps with all existing labels
+            while check_position_overlap(mid_year, PERIOD_LABEL_WIDTH, current_level, label_positions):
+                current_level -= 1
+            
+            # Add period label position to the list
+            label_positions.append((mid_year, PERIOD_LABEL_WIDTH, current_level))
+            levels[period] = current_level
 
         return levels
 
@@ -308,13 +353,52 @@ class Timeline:
         min_date, max_date = self._get_date_range()
         year_span = max_date.year - min_date.year
         margin = year_span * 0.05  # 5% margin
-        ax.set_xlim(min_date.year - margin, max_date.year + margin)
+        xlim_min = min_date.year - margin
+        xlim_max = max_date.year + margin
+        ax.set_xlim(xlim_min, xlim_max)
 
         # Calculate levels for components
         levels = self._calculate_levels(self.components)
 
-        # Draw baseline
+        # Draw main axis with arrowhead
         ax.axhline(0, color='black', linewidth=1.5, zorder=1)
+        
+        # Add arrowhead to the right
+        arrow_props = dict(
+            facecolor='black',
+            edgecolor='black',
+            arrowstyle='-|>',
+            shrinkA=0,
+            shrinkB=0,
+            mutation_scale=15,
+            linewidth=1.5
+        )
+        ax.annotate('', xy=(xlim_max, 0), xytext=(xlim_max - margin/2, 0),
+                   arrowprops=arrow_props, zorder=2)
+
+        # Configure year ticks
+        tick_years = list(range(
+            int(min_date.year - min_date.year % 5),  # Round to nearest 5
+            int(max_date.year + 5 - max_date.year % 5),  # Round to nearest 5
+            5  # Step by 5 years
+        ))
+        
+        # Add year labels on the main axis
+        for year in tick_years:
+            if xlim_min <= year <= xlim_max:
+                # Draw tick mark
+                ax.plot([year, year], [-0.1, 0.1], color='black', linewidth=1, zorder=1)
+                
+                # Add year label
+                year_str = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                ax.annotate(year_str, 
+                          xy=(year, 0),
+                          xytext=(0, -15),
+                          textcoords='offset points',
+                          ha='center',
+                          va='top',
+                          fontsize=9,
+                          zorder=1)
 
         # Sort components for drawing
         sorted_components = sorted(
@@ -324,10 +408,6 @@ class Timeline:
                 -["HIGH", "MEDIUM", "LOW"].index(x.importance)
             )
         )
-
-        # Track used positions for periods
-        period_positions = []
-        legend_entries = []
 
         # Color management
         color_indices = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
@@ -339,6 +419,8 @@ class Timeline:
             color = color_list[idx % len(color_list)]
             color_indices[importance] += 1
             return color
+
+        legend_entries = []
 
         # Draw components
         for component in sorted_components:
@@ -373,7 +455,6 @@ class Timeline:
                     zorder=4
                 )
 
-                # Add to legend
                 legend_entries.append((
                     patches.Circle((0, 0), fc=color, ec='black'),
                     f"{component.title} ({component.date.year})"
@@ -392,12 +473,18 @@ class Timeline:
                 )
                 ax.add_patch(rect)
 
-                # Add period label
+                # Add period label at calculated level
                 mid_year = (component.start.year + component.end.year) / 2
+                label_level = level
+                
+                # Draw connecting line from period to label
+                ax.vlines(mid_year, -period_height/2, label_level, 
+                         color=color, linestyle='--', linewidth=1, alpha=0.5, zorder=2)
+                
                 ax.annotate(
                     component.title,
-                    xy=(mid_year, -period_height),
-                    xytext=(0, -15),
+                    xy=(mid_year, label_level),
+                    xytext=(0, -5),
                     textcoords='offset points',
                     ha='center',
                     va='top',
@@ -413,7 +500,6 @@ class Timeline:
                     zorder=4
                 )
 
-                # Add to legend
                 legend_entries.append((
                     patches.Rectangle((0, 0), 1, 1, fc=color, alpha=0.7),
                     f"{component.title} ({component.start.year} → {component.end.year})"
@@ -421,7 +507,8 @@ class Timeline:
 
         # Configure axes
         ax.yaxis.set_visible(False)
-        ax.spines[['left', 'top', 'right']].set_visible(False)
+        ax.xaxis.set_visible(False)  # Hide the original x-axis
+        ax.spines[['left', 'top', 'right', 'bottom']].set_visible(False)
         
         # Set title
         ax.set_title(self.title, fontsize=14, fontweight='bold', pad=20)
@@ -438,8 +525,6 @@ class Timeline:
                 title="Timeline Components"
             )
 
-        # Adjust layout and save
-        plt.tight_layout()
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.close()
 
