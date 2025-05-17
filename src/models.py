@@ -342,6 +342,31 @@ class Timeline:
 
         return levels
 
+    def _calculate_period_positions(self, periods):
+        # Sort periods by start date
+        sorted_periods = sorted(periods, key=lambda p: (p.start.year, p.end.year))
+        
+        # Track period vertical positions
+        period_positions = {}
+        period_height = 0.15  # Height of each period bar
+        
+        # Helper function to check if periods overlap horizontally
+        def periods_overlap(p1, p2):
+            return not (p1.end.year < p2.start.year or p2.end.year < p1.start.year)
+        
+        # For each period, find the lowest available vertical position
+        for period in sorted_periods:
+            position = 0  # Start at the baseline
+            
+            # Check each position until we find one with no overlaps
+            while any(periods_overlap(period, other) and pos == position 
+                     for other, pos in period_positions.items()):
+                position += period_height  # Stack directly on top
+            
+            period_positions[period] = position
+            
+        return period_positions
+
     def export_png(self, filename: str = None):
         if filename is None:
             filename = f"{self.id}.png"
@@ -359,6 +384,10 @@ class Timeline:
 
         # Calculate levels for components
         levels = self._calculate_levels(self.components)
+
+        # Get periods and calculate their positions
+        periods = [comp for comp in self.components if isinstance(comp, Period)]
+        period_positions = self._calculate_period_positions(periods)
 
         # Draw main axis with arrowhead
         ax.axhline(0, color='black', linewidth=1.5, zorder=1)
@@ -409,25 +438,42 @@ class Timeline:
             )
         )
 
+        # Group components by importance
+        importance_groups = {
+            "HIGH": [],
+            "MEDIUM": [],
+            "LOW": []
+        }
+        for comp in sorted_components:
+            importance_groups[comp.importance].append(comp)
+
         # Color management
         color_indices = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
         color_sets = {"HIGH": self.HIGH_COLORS, "MEDIUM": self.MEDIUM_COLORS, "LOW": self.LOW_COLORS}
+        component_colors = {}  # Store assigned colors
 
-        def get_next_color(importance):
-            idx = color_indices[importance]
+        # Assign colors to ensure maximum difference between consecutive items
+        for importance, components in importance_groups.items():
             color_list = color_sets[importance]
-            color = color_list[idx % len(color_list)]
-            color_indices[importance] += 1
-            return color
+            n_colors = len(color_list)
+            n_components = len(components)
+            
+            # Calculate step size to spread colors evenly
+            step = max(1, n_colors // n_components)
+            
+            for i, comp in enumerate(components):
+                # Use modulo to wrap around the color list
+                color_idx = (i * step) % n_colors
+                component_colors[comp] = color_list[color_idx]
 
         legend_entries = []
 
         # Draw components
         for component in sorted_components:
-            color = get_next_color(component.importance)
-            level = levels[component]
+            color = component_colors[component]
 
             if isinstance(component, Event):
+                level = levels[component]
                 # Draw vertical line (stem)
                 ax.vlines(component.date.year, 0, level, color=color, linewidth=1.5, zorder=2)
                 
@@ -464,10 +510,13 @@ class Timeline:
                 ))
 
             elif isinstance(component, Period):
+                # Get period vertical position
+                y_pos = period_positions[component]
+                period_height = 0.15
+                
                 # Draw period bar
-                period_height = 0.1
                 rect = patches.Rectangle(
-                    (component.start.year, -period_height/2),
+                    (component.start.year, -period_height/2 - y_pos),
                     component.end.year - component.start.year,
                     period_height,
                     facecolor=color,
@@ -476,12 +525,12 @@ class Timeline:
                 )
                 ax.add_patch(rect)
 
-                # Add period label at calculated level
+                # Add period label
                 mid_year = (component.start.year + component.end.year) / 2
-                label_level = level
+                label_level = levels[component]
                 
                 # Draw connecting line from period to label
-                ax.vlines(mid_year, -period_height/2, label_level, 
+                ax.vlines(mid_year, -period_height/2 - y_pos, label_level, 
                          color=color, linestyle='--', linewidth=1, alpha=0.5, zorder=2)
                 
                 ax.annotate(
@@ -524,7 +573,7 @@ class Timeline:
         # Add legend at the bottom
         if legend_entries:
             # Calculate number of columns based on number of entries
-            ncol = min(2, len(legend_entries))  # Maximum 3 columns
+            ncol = min(2, len(legend_entries))  # Maximum 2 columns
             ax.legend(
                 *zip(*legend_entries),
                 loc='upper center',
