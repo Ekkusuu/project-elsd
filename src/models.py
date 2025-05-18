@@ -297,6 +297,48 @@ class Timeline:
         else:
             return "years_10"  # Show every 10 years
 
+    def _get_date_range_with_margin(self, min_date, max_date, interval_type):
+        """Calculate the extended date range to ensure ticks before and after components"""
+        min_decimal = self._date_to_decimal(min_date)
+        max_decimal = self._date_to_decimal(max_date)
+        span = max_decimal - min_decimal
+
+        # Calculate base margin based on interval type
+        if interval_type in ["days", "days_dense"]:
+            step = 1 if interval_type == "days_dense" else 2
+            margin = step / 365  # Convert days to years
+        elif interval_type == "weeks":
+            margin = 7 / 365  # One week margin
+        elif interval_type in ["months", "months_dense", "months_selective"]:
+            margin = 1/12  # One month margin
+        elif interval_type == "years_dense":
+            margin = 1
+        elif interval_type == "years":
+            margin = 2
+        elif interval_type == "years_5":
+            margin = 5
+        else:  # years_10
+            margin = 10
+
+        # Scale down the margin for larger spans to avoid excessive padding
+        if span > 100:
+            margin *= 0.5
+        elif span > 50:
+            margin *= 0.6
+        elif span > 20:
+            margin *= 0.7
+        elif span > 10:
+            margin *= 0.8
+        elif span > 5:
+            margin *= 0.9
+
+        # Ensure margin is between 2% and 5% of the span
+        min_margin = span * 0.02
+        max_margin = span * 0.06
+        margin = max(min_margin, min(margin, max_margin))
+        
+        return min_decimal - margin, max_decimal + margin
+
     def _generate_ticks(self, min_date, max_date, interval_type):
         """Generate tick positions and labels based on interval type"""
         start_year = self._date_to_decimal(min_date)
@@ -305,10 +347,24 @@ class Timeline:
         
         if interval_type in ["days", "days_dense"]:
             # Generate daily ticks
-            current = Date({"year": min_date.year, "month": min_date.month, "day": min_date.day})
+            # Calculate the first tick before min_date
             step = 1 if interval_type == "days_dense" else 2
+            current = Date({"year": min_date.year, "month": min_date.month, "day": min_date.day})
             
-            while current <= max_date:
+            # Move back to find the previous tick
+            for _ in range(step):
+                if current.day > 1:
+                    current = Date({"year": current.year, "month": current.month, "day": current.day - 1})
+                else:
+                    if current.month == 1:
+                        current = Date({"year": current.year - 1, "month": 12, "day": 31})
+                    else:
+                        prev_month = current.month - 1
+                        days_in_prev_month = current._days_in_month(current.year, prev_month)
+                        current = Date({"year": current.year, "month": prev_month, "day": days_in_prev_month})
+            
+            # Generate ticks including one before and after
+            while current <= max_date or self._date_to_decimal(current) <= end_year + step/365:
                 pos = self._date_to_decimal(current)
                 # Show month/day on first day of month or if dense
                 if current.day == 1 or interval_type == "days_dense":
@@ -329,8 +385,21 @@ class Timeline:
                             
         elif interval_type == "weeks":
             # Generate weekly ticks
+            # Start from a week before
             current = Date({"year": min_date.year, "month": min_date.month, "day": min_date.day})
-            while current <= max_date:
+            for _ in range(7):  # Go back one week
+                if current.day > 1:
+                    current = Date({"year": current.year, "month": current.month, "day": current.day - 1})
+                else:
+                    if current.month == 1:
+                        current = Date({"year": current.year - 1, "month": 12, "day": 31})
+                    else:
+                        prev_month = current.month - 1
+                        days_in_prev_month = current._days_in_month(current.year, prev_month)
+                        current = Date({"year": current.year, "month": prev_month, "day": days_in_prev_month})
+            
+            # Generate ticks including one before and after
+            while current <= max_date or self._date_to_decimal(current) <= end_year + 7/365:
                 pos = self._date_to_decimal(current)
                 label = f"{current.month}/{current.day}"
                 ticks.append((pos, label))
@@ -346,9 +415,15 @@ class Timeline:
                             current = Date({"year": current.year, "month": current.month + 1, "day": 1})
                             
         elif interval_type in ["months", "months_dense", "months_selective"]:
-            # Generate monthly ticks
+            # Calculate the first tick before min_date
             current = Date({"year": min_date.year, "month": min_date.month})
-            while current <= max_date:
+            if current.month == 1:
+                current = Date({"year": current.year - 1, "month": 12})
+            else:
+                current = Date({"year": current.year, "month": current.month - 1})
+            
+            # Generate ticks including one before and after
+            while current <= max_date or (current.month == max_date.month + 1 and current.year == max_date.year):
                 pos = self._date_to_decimal(current)
                 show_tick = (
                     interval_type == "months_dense" or
@@ -369,26 +444,24 @@ class Timeline:
                 else:
                     current = Date({"year": current.year, "month": current.month + 1})
                     
-        elif interval_type in ["years", "years_dense"]:
-            # Generate yearly ticks
-            step = 1 if interval_type == "years_dense" else 2
-            for year in range(min_date.year, max_date.year + 1, step):
-                pos = year
-                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
-                ticks.append((pos, label))
+        elif interval_type in ["years", "years_dense", "years_5", "years_10"]:
+            # Determine step size
+            if interval_type == "years_dense":
+                step = 1
+            elif interval_type == "years":
+                step = 2
+            elif interval_type == "years_5":
+                step = 5
+            else:  # years_10
+                step = 10
                 
-        elif interval_type == "years_5":
-            # Generate ticks every 5 years
-            start_year = min_date.year - (min_date.year % 5)
-            for year in range(start_year, max_date.year + 5, 5):
-                pos = year
-                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
-                ticks.append((pos, label))
-                
-        else:  # years_10
-            # Generate ticks every 10 years
-            start_year = min_date.year - (min_date.year % 10)
-            for year in range(start_year, max_date.year + 10, 10):
+            # Calculate the first tick before min_date
+            start_year = min_date.year - (min_date.year % step) - step
+            # Calculate the last tick after max_date
+            end_year = max_date.year + (step - (max_date.year % step)) + step
+            
+            # Generate ticks
+            for year in range(start_year, end_year + 1, step):
                 pos = year
                 label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
                 ticks.append((pos, label))
@@ -513,14 +586,12 @@ class Timeline:
         
         # Get date range and convert to decimal years for precise positioning
         min_date, max_date = self._get_date_range()
-        min_pos = self._date_to_decimal(min_date)
-        max_pos = self._date_to_decimal(max_date)
         
-        # Calculate margins - use smaller margins for dense timelines
-        span = max_pos - min_pos
-        margin = min(span * 0.05, 0.5)  # Either 5% of span or 0.5 units, whichever is smaller
-        xlim_min = min_pos - margin
-        xlim_max = max_pos + margin
+        # Calculate tick interval based on the actual data range
+        interval_type = self._calculate_tick_interval(min_date, max_date)
+        
+        # Get extended range with margins for consistent ticks
+        xlim_min, xlim_max = self._get_date_range_with_margin(min_date, max_date, interval_type)
         ax.set_xlim(xlim_min, xlim_max)
 
         # Calculate levels for components
@@ -543,12 +614,15 @@ class Timeline:
             mutation_scale=15,
             linewidth=1.5
         )
-        ax.annotate('', xy=(xlim_max, 0), xytext=(xlim_max - margin/2, 0),
+        ax.annotate('', xy=(xlim_max, 0), xytext=(xlim_max - (xlim_max - xlim_min) * 0.02, 0),
                    arrowprops=arrow_props, zorder=2)
 
-        # Determine and add appropriate tick marks
-        interval_type = self._calculate_tick_interval(min_date, max_date)
-        ticks = self._generate_ticks(min_date, max_date, interval_type)
+        # Create temporary Date objects for the extended range
+        extended_min_date = Date({"year": int(xlim_min), "month": 1, "day": 1})
+        extended_max_date = Date({"year": int(xlim_max + 1), "month": 12, "day": 31})
+        
+        # Generate and add tick marks with the extended range
+        ticks = self._generate_ticks(extended_min_date, extended_max_date, interval_type)
         
         # Add tick marks and labels
         for pos, label in ticks:
