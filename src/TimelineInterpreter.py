@@ -105,7 +105,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         comp_ctx = ctx.componentList()
         if comp_ctx: 
             for comp_id in [id.getText() for id in comp_ctx.ID()]:
-                component = self.events.get(comp_id) or self.periods.get(comp_id)
+                component = self.events.get(comp_id) or self.periods.get(comp_id) or self.relationships.get(comp_id)
                 if component:
                     components.append(component)
                 else:
