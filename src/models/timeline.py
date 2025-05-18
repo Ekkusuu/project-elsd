@@ -10,6 +10,7 @@ from .period import Period
 from .relationship import Relationship
 from .date import Date
 import os
+from io import BytesIO
 
 class Timeline:
     HIGH_COLORS = ["#1E90FF", "#007FFF", "#3399FF", "#0055FF", "#4682B4", "#4169E1", "#0000CD", "#0000FF"]
@@ -453,15 +454,8 @@ class Timeline:
             
         return period_positions
 
-    def export_png(self, filename: str = None):
-        if filename is None:
-            filename = f"{self.id}.png"
-        # Ensure output directory exists
-        output_dir = os.path.join(os.getcwd(), "output")
-        os.makedirs(output_dir, exist_ok=True)
-        # Create full path for the file
-        filepath = os.path.join(output_dir, filename)
-
+    def generate_png_bytes(self) -> bytes:
+        """Generate the timeline visualization and return it as bytes."""
         # Create figure with extra space at bottom for legend
         fig, ax = plt.subplots(figsize=(15, 10), layout='constrained')
         
@@ -777,17 +771,33 @@ class Timeline:
                 ncol=ncol
             )
 
-        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        # Save to bytes buffer instead of file
+        buf = BytesIO()
+        plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
         plt.close()
+        buf.seek(0)
+        return buf.getvalue()
 
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "title": self.title,
-            "components": [comp.to_dict() for comp in self.components]
-        }
+    def generate_json(self) -> str:
+        """Generate the timeline data as a JSON string."""
+        return json.dumps(self.to_dict(), indent=2)
+
+    def export_png(self, filename: str = None):
+        """Export the timeline visualization to a PNG file."""
+        if filename is None:
+            filename = f"{self.id}.png"
+        # Ensure output directory exists
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
+        # Create full path for the file
+        filepath = os.path.join(output_dir, filename)
+        # Generate and save PNG
+        png_data = self.generate_png_bytes()
+        with open(filepath, 'wb') as f:
+            f.write(png_data)
 
     def export_json(self, filename: str = None):
+        """Export the timeline data to a JSON file."""
         if filename is None:
             filename = f"{self.id}.json"
         # Ensure output directory exists
@@ -795,5 +805,14 @@ class Timeline:
         os.makedirs(output_dir, exist_ok=True)
         # Create full path for the file
         filepath = os.path.join(output_dir, filename)
+        # Generate and save JSON
+        json_data = self.generate_json()
         with open(filepath, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2) 
+            f.write(json_data)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "components": [comp.to_dict() for comp in self.components]
+        } 
