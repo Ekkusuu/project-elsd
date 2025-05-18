@@ -98,8 +98,10 @@ function switchTab(tabName) {
     });
     document.getElementById(tabName + '-tab').classList.add('active');
 
-    // Show/hide appropriate download button
+    // Show/hide appropriate buttons
+    document.getElementById('copy-json').style.display = tabName === 'json' ? 'block' : 'none';
     document.getElementById('download-json').style.display = tabName === 'json' ? 'block' : 'none';
+    document.getElementById('copy-png').style.display = tabName === 'image' ? 'block' : 'none';
     document.getElementById('download-png').style.display = tabName === 'image' ? 'block' : 'none';
 }
 
@@ -192,6 +194,60 @@ function downloadImage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+}
+
+async function copyJSON() {
+    if (!currentData) return;
+    
+    const jsonData = typeof currentData.json === 'string' ? currentData.json : JSON.stringify(currentData.json, null, 2);
+    try {
+        await navigator.clipboard.writeText(jsonData);
+        showCopyFeedback('copy-json');
+    } catch (err) {
+        console.error('Failed to copy JSON:', err);
+    }
+}
+
+async function copyImage() {
+    if (!currentData || currentData.type !== 'timeline') return;
+    
+    try {
+        // Create a canvas element
+        const img = document.getElementById('timeline-image');
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        
+        // Draw the image onto the canvas
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        // Get the blob from the canvas
+        const blob = await new Promise(resolve => canvas.toBlob(resolve));
+        
+        // Copy the image to clipboard
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'image/png': blob
+            })
+        ]);
+        
+        showCopyFeedback('copy-png');
+    } catch (err) {
+        console.error('Failed to copy image:', err);
+    }
+}
+
+function showCopyFeedback(buttonId) {
+    const button = document.getElementById(buttonId);
+    const originalText = button.textContent;
+    button.textContent = 'Copied!';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+    }, 1500);
 }
 
 async function visualize() {
