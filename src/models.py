@@ -113,6 +113,16 @@ class Date:
                 self.month == other.month and 
                 self.day == other.day)
 
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __gt__(self, other):
+        return not self <= other
+
+    def __ge__(self, other):
+        return not self < other
+
+
 class TimelineComponent:
     def __init__(self, id: str, title: str, importance: str = "MEDIUM"):
         self.id = id
@@ -248,6 +258,102 @@ class Timeline:
     def validate_components(self):
         if not self.components:
             raise ValueError("Timeline must have at least one component")
+
+        # Separate components by type and create lookup maps
+        events_and_periods = []
+        relationships = []
+        component_map = {}
+
+        # First pass: collect all events and periods
+        for component in self.components:
+            if isinstance(component, (Event, Period)):
+                events_and_periods.append(component)
+                component_map[component.id] = component
+            elif isinstance(component, Relationship):
+                relationships.append(component)
+
+        # Second pass: update relationship references and validate
+        for rel in relationships:
+            # Check if both components exist in the timeline
+            from_comp = component_map.get(rel.from_component.id)
+            to_comp = component_map.get(rel.to_component.id)
+
+            if not from_comp:
+                raise ValueError(f"Relationship {rel.id}: 'from' component '{rel.from_component.id}' is not in the timeline")
+            if not to_comp:
+                raise ValueError(f"Relationship {rel.id}: 'to' component '{rel.to_component.id}' is not in the timeline")
+
+            # Update relationship with actual component references
+            rel.from_component = from_comp
+            rel.to_component = to_comp
+
+            # Validate temporal constraints based on relationship type
+            if rel.type == "CAUSE_EFFECT":
+                # For cause-effect, 'from' must be chronologically earlier than 'to'
+                if isinstance(from_comp, Event) and isinstance(to_comp, Event):
+                    if not (from_comp.date < to_comp.date):
+                        raise ValueError(f"Relationship {rel.id}: In a cause-effect relationship, the cause ({from_comp.id}) must be earlier than the effect ({to_comp.id})")
+                elif isinstance(from_comp, Period) and isinstance(to_comp, (Event, Period)):
+                    if isinstance(to_comp, Event):
+                        if not (from_comp.start < to_comp.date):
+                            raise ValueError(f"Relationship {rel.id}: In a cause-effect relationship, the cause period ({from_comp.id}) must start before the effect ({to_comp.id})")
+                    else:  # to_comp is Period
+                        if not (from_comp.start < to_comp.start):
+                            raise ValueError(f"Relationship {rel.id}: In a cause-effect relationship, the cause period ({from_comp.id}) must start before the effect period ({to_comp.id})")
+                elif isinstance(from_comp, Event) and isinstance(to_comp, Period):
+                    if not (from_comp.date < to_comp.end):
+                        raise ValueError(f"Relationship {rel.id}: In a cause-effect relationship, the cause ({from_comp.id}) must be earlier than the end of the effect period ({to_comp.id})")
+
+            elif rel.type == "PRECEDES":
+                # For precedes, 'from' must end before 'to' starts
+                from_date = from_comp.date if isinstance(from_comp, Event) else from_comp.end
+                to_date = to_comp.date if isinstance(to_comp, Event) else to_comp.start
+                if not (from_date < to_date):
+                    raise ValueError(f"Relationship {rel.id}: In a precedes relationship, {from_comp.id} must be before {to_comp.id}")
+
+            elif rel.type == "FOLLOWS":
+                # For follows, 'to' must end before 'from' starts
+                from_date = from_comp.date if isinstance(from_comp, Event) else from_comp.start
+                to_date = to_comp.date if isinstance(to_comp, Event) else to_comp.end
+                if not (to_date < from_date):
+                    raise ValueError(f"Relationship {rel.id}: In a follows relationship, {to_comp.id} must be before {from_comp.id}")
+
+            elif rel.type == "CONTEMPORANEOUS":
+                # For contemporaneous, components must overlap in time
+                if isinstance(from_comp, Event) and isinstance(to_comp, Event):
+                    if from_comp.date != to_comp.date:
+                        raise ValueError(f"Relationship {rel.id}: In a contemporaneous relationship between events, {from_comp.id} and {to_comp.id} must occur at the same time")
+                elif isinstance(from_comp, Period) and isinstance(to_comp, Period):
+                    if not (from_comp.start <= to_comp.end and to_comp.start <= from_comp.end):
+                        raise ValueError(f"Relationship {rel.id}: In a contemporaneous relationship between periods, {from_comp.id} and {to_comp.id} must overlap")
+                else:  # One is Event, one is Period
+                    event = from_comp if isinstance(from_comp, Event) else to_comp
+                    period = to_comp if isinstance(to_comp, Period) else from_comp
+                    if not (period.start <= event.date <= period.end):
+                        raise ValueError(f"Relationship {rel.id}: In a contemporaneous relationship, event {event.id} must occur during period {period.id}")
+
+            elif rel.type == "INCLUDES":
+                # Already validated in Relationship class that 'from' is a Period
+                if isinstance(to_comp, Event):
+                    if not (from_comp.start <= to_comp.date <= from_comp.end):
+                        raise ValueError(f"Relationship {rel.id}: In an includes relationship, event {to_comp.id} must occur within period {from_comp.id}")
+                else:  # to_comp is Period
+                    if not (from_comp.start <= to_comp.start and to_comp.end <= from_comp.end):
+                        raise ValueError(f"Relationship {rel.id}: In an includes relationship, period {to_comp.id} must be entirely within period {from_comp.id}")
+
+            elif rel.type == "EXCLUDES":
+                if isinstance(from_comp, Period) and isinstance(to_comp, Period):
+                    if from_comp.start <= to_comp.end and to_comp.start <= from_comp.end:
+                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, periods {from_comp.id} and {to_comp.id} must not overlap")
+                elif isinstance(from_comp, Period):
+                    if from_comp.start <= to_comp.date <= from_comp.end:
+                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, event {to_comp.id} must not occur during period {from_comp.id}")
+                elif isinstance(to_comp, Period):
+                    if to_comp.start <= from_comp.date <= to_comp.end:
+                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, event {from_comp.id} must not occur during period {to_comp.id}")
+                else:  # Both are events
+                    if from_comp.date == to_comp.date:
+                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, events {from_comp.id} and {to_comp.id} must not occur at the same time")
 
     def _date_to_decimal(self, date):
         """Convert a Date object to a decimal year for precise positioning"""
@@ -469,9 +575,12 @@ class Timeline:
         return ticks
 
     def _calculate_levels(self, components):
+        # Filter out relationships, only handle events and periods
+        event_period_comps = [comp for comp in components if isinstance(comp, (Event, Period))]
+        
         # Sort components by date
         sorted_comps = sorted(
-            components,
+            event_period_comps,
             key=lambda x: (x.date.year if isinstance(x, Event) else x.start.year,
                          x.date.month if isinstance(x, Event) and x.date.month else 0,
                          x.date.day if isinstance(x, Event) and x.date.day else 0)
@@ -566,7 +675,7 @@ class Timeline:
         
         # For each period, find the lowest available vertical position
         for period in sorted_periods:
-            position = 0  # Start at the baseline
+            position = period_height/2  # Start just above the baseline
             
             # Check each position until we find one with no overlaps
             while any(periods_overlap(period, other) and pos == position 
@@ -594,11 +703,15 @@ class Timeline:
         xlim_min, xlim_max = self._get_date_range_with_margin(min_date, max_date, interval_type)
         ax.set_xlim(xlim_min, xlim_max)
 
-        # Calculate levels for components
-        levels = self._calculate_levels(self.components)
+        # Separate components by type
+        events_and_periods = [comp for comp in self.components if isinstance(comp, (Event, Period))]
+        relationships = [comp for comp in self.components if isinstance(comp, Relationship)]
+
+        # Calculate levels for events and periods
+        levels = self._calculate_levels(events_and_periods)
 
         # Get periods and calculate their positions
-        periods = [comp for comp in self.components if isinstance(comp, Period)]
+        periods = [comp for comp in events_and_periods if isinstance(comp, Period)]
         period_positions = self._calculate_period_positions(periods)
 
         # Draw main axis with arrowhead
@@ -643,7 +756,7 @@ class Timeline:
 
         # Sort components for drawing
         sorted_components = sorted(
-            self.components,
+            events_and_periods,
             key=lambda x: (
                 self._date_to_decimal(x.date if isinstance(x, Event) else x.start),
                 -["HIGH", "MEDIUM", "LOW"].index(x.importance)
@@ -732,9 +845,9 @@ class Timeline:
                 start_pos = self._date_to_decimal(component.start)
                 end_pos = self._date_to_decimal(component.end)
                 
-                # Draw period bar
+                # Draw period bar above the axis
                 rect = patches.Rectangle(
-                    (start_pos, -period_height/2 - y_pos),
+                    (start_pos, y_pos - period_height/2),
                     end_pos - start_pos,
                     period_height,
                     facecolor=color,
@@ -748,7 +861,7 @@ class Timeline:
                 label_level = levels[component]
                 
                 # Draw connecting line from period to label
-                ax.vlines(mid_pos, -period_height/2 - y_pos, label_level, 
+                ax.vlines(mid_pos, y_pos + period_height/2, label_level, 
                          color=color, linestyle='--', linewidth=1, alpha=0.5, zorder=2)
                 
                 ax.annotate(
@@ -777,6 +890,42 @@ class Timeline:
                     patches.Rectangle((0, 0), 1, 1, fc=color, alpha=0.7),
                     f"{component.title} ({start_str} → {end_str})"
                 ))
+
+        # Draw relationships
+        for rel in relationships:
+            # Get positions for the relationship line
+            if isinstance(rel.from_component, Event):
+                from_pos = self._date_to_decimal(rel.from_component.date)
+                from_y = levels[rel.from_component]
+            else:  # Period
+                from_pos = self._date_to_decimal(rel.from_component.start)
+                from_y = period_positions[rel.from_component]
+
+            if isinstance(rel.to_component, Event):
+                to_pos = self._date_to_decimal(rel.to_component.date)
+                to_y = levels[rel.to_component]
+            else:  # Period
+                to_pos = self._date_to_decimal(rel.to_component.start)
+                to_y = period_positions[rel.to_component]
+
+            # Draw relationship line with arrow
+            arrow_style = {
+                "CAUSE_EFFECT": "->",
+                "PRECEDES": "-|>",
+                "FOLLOWS": "<|-",
+                "CONTEMPORANEOUS": "<->",
+                "INCLUDES": "-[",
+                "EXCLUDES": "-/"
+            }.get(rel.type, "->")
+
+            ax.annotate("",
+                       xy=(to_pos, to_y),
+                       xytext=(from_pos, from_y),
+                       arrowprops=dict(arrowstyle=arrow_style,
+                                     color='gray',
+                                     alpha=0.6,
+                                     connectionstyle="arc3,rad=0.2"),
+                       zorder=1)
 
         # Configure axes
         ax.yaxis.set_visible(False)
