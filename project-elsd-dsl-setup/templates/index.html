@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline DSL Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+        }
+        
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .editor-pane {
+            flex: 1;
+            padding: 1rem;
+            border-right: 2px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .visualization-pane {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+        }
+        
+        #editor {
+            width: 100%;
+            height: 100%;
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .button-container {
+            margin-top: 1rem;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .run-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+        }
+        
+        .run-btn:hover {
+            background-color: #45a049;
+        }
+
+        .view-toggle-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .view-toggle-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .download-btn {
+            background-color: #FF9800;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .download-btn:hover {
+            background-color: #F57C00;
+        }
+        
+        .error-message {
+            color: #D32F2F;
+            margin-top: 1rem;
+            display: none;
+            padding: 1rem;
+            background-color: #FFEBEE;
+            border: 1px solid #FFCDD2;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .error-message.export-error {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        #timeline-image {
+            max-width: 100%;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        #json-view {
+            width: 100%;
+            height: 100%;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            display: none;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-container {
+            display: none;
+            width: 100%;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .error-container .error-icon {
+            font-size: 48px;
+            color: #D32F2F;
+            margin-bottom: 1rem;
+        }
+
+        .error-container .error-title {
+            font-size: 24px;
+            color: #D32F2F;
+            margin-bottom: 1rem;
+        }
+
+        .error-container .error-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .error-container code {
+            background-color: #f5f5f5;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .validation-errors {
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem auto;
+            text-align: left;
+            display: none;
+        }
+
+        .validation-errors .error-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .validation-errors .error-item {
+            background-color: #FFEBEE;
+            border: 1px solid #FFCDD2;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            color: #D32F2F;
+            font-size: 14px;
+        }
+
+        .validation-errors .error-item:before {
+            content: "⚠️";
+            margin-right: 0.5rem;
+        }
+
+        .validation-errors .error-title {
+            font-size: 20px;
+            color: #D32F2F;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Timeline DSL Visualizer</h1>
+    </div>
+    
+    <div class="container">
+        <div class="editor-pane">
+            <textarea id="editor" spellcheck="false">{{ default_timeline }}</textarea>
+            <div class="button-container">
+                <button class="run-btn" onclick="runTimeline()">Run Timeline</button>
+                <button class="view-toggle-btn" onclick="toggleView()" disabled>View JSON</button>
+                <button class="download-btn" onclick="downloadCurrent()" disabled>Download</button>
+            </div>
+            <div class="error-message" id="error-message"></div>
+        </div>
+        
+        <div class="visualization-pane">
+            <div class="loading" id="loading">Processing timeline...</div>
+            <img id="timeline-image">
+            <pre id="json-view"></pre>
+            <div class="error-container" id="error-container">
+                <div class="error-icon">⚠️</div>
+                <div class="error-title">Export Required</div>
+                <div class="error-text">
+                    To visualize the timeline, you need to add an export command in the <code>main</code> block.<br>
+                    Example:<br>
+                    <code>
+                        main {<br>
+                            &nbsp;&nbsp;export yourTimelineId;<br>
+                        }
+                    </code>
+                </div>
+            </div>
+            <div class="validation-errors" id="validation-errors">
+                <div class="error-title">Timeline Validation Errors</div>
+                <ul class="error-list" id="error-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'image';
+        let currentData = null;
+
+        function runTimeline() {
+            const code = document.getElementById('editor').value;
+            const errorMessage = document.getElementById('error-message');
+            const loading = document.getElementById('loading');
+            const timelineImage = document.getElementById('timeline-image');
+            const jsonView = document.getElementById('json-view');
+            const viewToggleBtn = document.querySelector('.view-toggle-btn');
+            const downloadBtn = document.querySelector('.download-btn');
+            const errorContainer = document.getElementById('error-container');
+            const validationErrors = document.getElementById('validation-errors');
+            const errorList = document.getElementById('error-list');
+            
+            // Show loading, hide all other content
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            timelineImage.style.display = 'none';
+            jsonView.style.display = 'none';
+            errorContainer.style.display = 'none';
+            validationErrors.style.display = 'none';
+            viewToggleBtn.disabled = true;
+            downloadBtn.disabled = true;
+            
+            fetch('/visualize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.success) {
+                    currentData = data;
+                    timelineImage.src = 'data:image/png;base64,' + data.image;
+                    jsonView.textContent = JSON.stringify(data.json, null, 2);
+                    
+                    // Show image view by default
+                    timelineImage.style.display = 'block';
+                    jsonView.style.display = 'none';
+                    currentView = 'image';
+                    
+                    // Enable view toggle and download buttons
+                    viewToggleBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                    viewToggleBtn.textContent = 'View JSON';
+                } else {
+                    if (data.validation_errors) {
+                        // Show validation errors
+                        errorList.innerHTML = '';
+                        data.validation_errors.forEach(error => {
+                            const li = document.createElement('li');
+                            li.className = 'error-item';
+                            li.textContent = error;
+                            errorList.appendChild(li);
+                        });
+                        validationErrors.style.display = 'block';
+                    } else if (data.error_type === 'export_missing') {
+                        // Show export missing error
+                        errorContainer.style.display = 'block';
+                    } else {
+                        // Show general error
+                        errorMessage.textContent = data.error;
+                        errorMessage.style.display = 'block';
+                    }
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                errorMessage.textContent = 'An error occurred while processing the timeline.';
+                errorMessage.style.display = 'block';
+            });
+        }
+
+        function toggleView() {
+            const timelineImage = document.getElementById('timeline-image');
+            const jsonView = document.getElementById('json-view');
+            const viewToggleBtn = document.querySelector('.view-toggle-btn');
+            
+            if (currentView === 'image') {
+                timelineImage.style.display = 'none';
+                jsonView.style.display = 'block';
+                currentView = 'json';
+                viewToggleBtn.textContent = 'View Image';
+            } else {
+                timelineImage.style.display = 'block';
+                jsonView.style.display = 'none';
+                currentView = 'image';
+                viewToggleBtn.textContent = 'View JSON';
+            }
+        }
+
+        function downloadCurrent() {
+            if (!currentData) return;
+            
+            const link = document.createElement('a');
+            
+            if (currentView === 'image') {
+                link.href = 'data:image/png;base64,' + currentData.image;
+                link.download = 'timeline.png';
+            } else {
+                const blob = new Blob([JSON.stringify(currentData.json, null, 2)], { type: 'application/json' });
+                link.href = URL.createObjectURL(blob);
+                link.download = 'timeline.json';
+            }
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html> 

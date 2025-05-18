@@ -1,0 +1,23 @@
+{
+    "timeline_id": "earlyRome",
+    "title": "Early Rome Events",
+    "events": [
+        {
+            "id": "E1",
+            "title": "Founding of Rome",
+            "date": {
+                "year": 753
+            },
+            "importance": "HIGH"
+        },
+        {
+            "id": "E2",
+            "title": "Battle of Allia",
+            "date": {
+                "year": 390
+            },
+            "importance": "MEDIUM"
+        }
+    ],
+    "periods": []
+}
