@@ -73,11 +73,8 @@ function createComponentSelector(components) {
     components.forEach(component => {
         const button = document.createElement('button');
         button.className = 'component-button';
-        button.innerHTML = `
-            <div class="component-type">${component.type}</div>
-            <div class="component-title">${component.title}</div>
-            <div class="component-id">${component.id}</div>
-        `;
+        button.textContent = component.id;
+        button.title = `${component.type}: ${component.title}`; // Show type and title on hover
         button.onclick = () => showComponent(component);
         selector.appendChild(button);
     });
@@ -88,10 +85,28 @@ function createComponentSelector(components) {
     }
 }
 
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    document.getElementById(tabName + '-tab-btn').classList.add('active');
+
+    // Update tab content
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('active');
+    });
+    document.getElementById(tabName + '-tab').classList.add('active');
+
+    // Show/hide appropriate download button
+    document.getElementById('download-json').style.display = tabName === 'json' ? 'block' : 'none';
+    document.getElementById('download-png').style.display = tabName === 'image' ? 'block' : 'none';
+}
+
 function showComponent(component) {
     // Update active state of buttons
     document.querySelectorAll('.component-button').forEach(button => {
-        if (button.querySelector('.component-id').textContent === component.id) {
+        if (button.textContent === component.id) {
             button.classList.add('active');
         } else {
             button.classList.remove('active');
@@ -101,32 +116,29 @@ function showComponent(component) {
     // Show visualization content
     document.getElementById('visualization-content').style.display = 'block';
 
-    // Update tabs visibility
+    // Update tabs visibility and content
     const imageTabBtn = document.getElementById('image-tab-btn');
     const jsonTabBtn = document.getElementById('json-tab-btn');
     
     if (component.type === 'timeline') {
+        // Show image tab and switch to it
         imageTabBtn.style.display = 'block';
-        document.getElementById('download-png').style.display = 'block';
+        document.getElementById('timeline-image').src = 'data:image/png;base64,' + component.image;
+        document.getElementById('timeline-image').style.display = 'block';
+        switchTab('image');
     } else {
         imageTabBtn.style.display = 'none';
+        // Hide image download button if switching from timeline to non-timeline
         document.getElementById('download-png').style.display = 'none';
         // Switch to JSON tab if we're on image tab
         if (document.getElementById('image-tab').classList.contains('active')) {
             switchTab('json');
         }
     }
-
-    // Update content
-    if (component.type === 'timeline') {
-        document.getElementById('timeline-image').src = 'data:image/png;base64,' + component.image;
-        document.getElementById('timeline-image').style.display = 'block';
-    }
     
     // Update JSON view
     const jsonData = typeof component.json === 'string' ? JSON.parse(component.json) : component.json;
     document.getElementById('json-view').innerHTML = formatJSON(jsonData);
-    document.getElementById('download-json').style.display = 'block';
     
     // Store current data for downloads
     currentData = component;
@@ -154,20 +166,6 @@ function formatJSON(obj) {
         })
         .replace(/\n/g, '<br>')
         .replace(/\s{2}/g, '&nbsp;&nbsp;');
-}
-
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    document.getElementById(tabName + '-tab-btn').classList.add('active');
-
-    // Update tab content
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-    });
-    document.getElementById(tabName + '-tab').classList.add('active');
 }
 
 function downloadJSON() {
