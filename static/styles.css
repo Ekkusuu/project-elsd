@@ -169,6 +169,32 @@ h2 {
     gap: 8px;
 }
 
+.download-buttons button {
+    background-color: #28a745;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.download-buttons button:hover {
+    background-color: #218838;
+}
+
+.download-buttons button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Copy buttons specific styles */
+.download-buttons button[id^="copy-"] {
+    background-color: #6c757d;
+}
+
+.download-buttons button[id^="copy-"]:hover {
+    background-color: #5a6268;
+}
+
 .tab-content {
     flex: 1;
     display: flex;
