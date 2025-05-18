@@ -9,6 +9,7 @@ from .event import Event
 from .period import Period
 from .relationship import Relationship
 from .date import Date
+import os
 
 class Timeline:
     HIGH_COLORS = ["#1E90FF", "#007FFF", "#3399FF", "#0055FF", "#4682B4", "#4169E1", "#0000CD", "#0000FF"]
@@ -455,6 +456,11 @@ class Timeline:
     def export_png(self, filename: str = None):
         if filename is None:
             filename = f"{self.id}.png"
+        # Ensure output directory exists
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
+        # Create full path for the file
+        filepath = os.path.join(output_dir, filename)
 
         # Create figure with extra space at bottom for legend
         fig, ax = plt.subplots(figsize=(15, 10), layout='constrained')
@@ -771,7 +777,7 @@ class Timeline:
                 ncol=ncol
             )
 
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
 
     def to_dict(self) -> dict:
@@ -784,5 +790,10 @@ class Timeline:
     def export_json(self, filename: str = None):
         if filename is None:
             filename = f"{self.id}.json"
-        with open(filename, 'w') as f:
+        # Ensure output directory exists
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
+        # Create full path for the file
+        filepath = os.path.join(output_dir, filename)
+        with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2) 
