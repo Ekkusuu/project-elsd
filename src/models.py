@@ -898,15 +898,21 @@ class Timeline:
                 from_pos = self._date_to_decimal(rel.from_component.date)
                 from_y = levels[rel.from_component]
             else:  # Period
-                from_pos = self._date_to_decimal(rel.from_component.start)
-                from_y = period_positions[rel.from_component]
+                # Use the middle of the period for the x-position
+                start_pos = self._date_to_decimal(rel.from_component.start)
+                end_pos = self._date_to_decimal(rel.from_component.end)
+                from_pos = (start_pos + end_pos) / 2
+                from_y = levels[rel.from_component]
 
             if isinstance(rel.to_component, Event):
                 to_pos = self._date_to_decimal(rel.to_component.date)
                 to_y = levels[rel.to_component]
             else:  # Period
-                to_pos = self._date_to_decimal(rel.to_component.start)
-                to_y = period_positions[rel.to_component]
+                # Use the middle of the period for the x-position
+                start_pos = self._date_to_decimal(rel.to_component.start)
+                end_pos = self._date_to_decimal(rel.to_component.end)
+                to_pos = (start_pos + end_pos) / 2
+                to_y = levels[rel.to_component]
 
             # Draw relationship line with arrow
             arrow_style = {
@@ -914,17 +920,67 @@ class Timeline:
                 "PRECEDES": "-|>",
                 "FOLLOWS": "<|-",
                 "CONTEMPORANEOUS": "<->",
-                "INCLUDES": "-[",
+                "INCLUDES": "->",
                 "EXCLUDES": "-/"
             }.get(rel.type, "->")
 
+            # Calculate midpoint for label
+            mid_x = (from_pos + to_pos) / 2
+            mid_y = (from_y + to_y) / 2
+            
+            # Calculate angle of the line for label rotation
+            angle = np.degrees(np.arctan2(to_y - from_y, to_pos - from_pos))
+            # Keep angle between -90 and 90 degrees for readability
+            if angle > 90:
+                angle -= 180
+            elif angle < -90:
+                angle += 180
+
+            # Draw the arrow with a curved path
+            # Adjust curvature based on vertical distance
+            rad = 0.2 + abs(to_y - from_y) * 0.05  # More curve for larger vertical distances
+            rad = min(rad, 0.4)  # Cap the maximum curvature
+
+            # Calculate the actual midpoint on the curve using the control point
+            # The control point of the quadratic bezier curve is perpendicular to the midpoint
+            # at a distance determined by the rad parameter
+            dx = to_pos - from_pos
+            dy = to_y - from_y
+            control_x = mid_x + dy * rad  # Control point x
+            control_y = mid_y - dx * rad  # Control point y
+            
+            # The point at t=0.5 on a quadratic bezier curve is the actual midpoint
+            curve_mid_x = 0.25 * from_pos + 0.5 * control_x + 0.25 * to_pos
+            curve_mid_y = 0.25 * from_y + 0.5 * control_y + 0.25 * to_y
+            
             ax.annotate("",
                        xy=(to_pos, to_y),
                        xytext=(from_pos, from_y),
                        arrowprops=dict(arrowstyle=arrow_style,
                                      color='gray',
                                      alpha=0.6,
-                                     connectionstyle="arc3,rad=0.2"),
+                                     connectionstyle=f"arc3,rad={rad}"),
+                       zorder=1)
+
+            # Add relationship label at the curve midpoint
+            # Convert relationship type to a more readable format
+            rel_label = rel.type.replace('_', '-').title()
+            ax.annotate(rel_label,
+                       xy=(curve_mid_x, curve_mid_y),  # Use the curve midpoint
+                       xytext=(0, 3),  # Small offset above the line
+                       textcoords='offset points',
+                       ha='center',
+                       va='center',
+                       rotation=angle,
+                       fontsize=8,
+                       color='gray',
+                       alpha=0.8,
+                       bbox=dict(
+                           boxstyle='round,pad=0.2',
+                           fc='white',
+                           ec='none',
+                           alpha=0.8
+                       ),
                        zorder=1)
 
         # Configure axes
