@@ -158,28 +158,15 @@ class TimelineInterpreter(TimelineParserVisitor):
             
         self.already_exported.add(export_id)
         
+        # Just mark the component as exported, actual data generation happens in Flask app
         if export_id in self.timelines:
-            timeline = self.timelines[export_id]
-            filename_json = f"{export_id}.json"
-            filename_png = f"{export_id}.png"
-            
-            timeline.export_json(filename_json)
-            timeline.export_png()  # This is empty for now
-            print(f"[Exported] Timeline data saved to {filename_json}")
-            print(f"[Exported] Timeline image saved to {filename_png}")
-
+            print(f"[Info] Timeline {export_id} marked for export")
         elif export_id in self.events:
-            event = self.events[export_id]
-            filename = f"{export_id}.json"
-            event.export_json(filename)
-            print(f"[Exported] Event data saved to {filename}")
-            
+            print(f"[Info] Event {export_id} marked for export")
         elif export_id in self.periods:
-            period = self.periods[export_id]
-            filename = f"{export_id}.json"
-            period.export_json(filename)
-            print(f"[Exported] Period data saved to {filename}")
-            
+            print(f"[Info] Period {export_id} marked for export")
+        elif export_id in self.relationships:
+            print(f"[Info] Relationship {export_id} marked for export")
         else:
             print(f"[Warning] ID '{export_id}' not found.")
             
