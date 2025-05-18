@@ -62,46 +62,53 @@ def visualize():
                 'error_type': 'export_missing'
             })
 
-        # Get the first exported component's data
-        export_id = next(iter(interpreter.already_exported))
+        # Process all exported components
+        exported_components = []
         
-        # Get the exported component
-        if export_id in interpreter.timelines:
-            timeline = interpreter.timelines[export_id]
-            response = {
-                'success': True,
-                'type': 'timeline',
-                'json': timeline.generate_json(),
-                'image': base64.b64encode(timeline.generate_png_bytes()).decode('utf-8')
-            }
-        elif export_id in interpreter.events:
-            event = interpreter.events[export_id]
-            response = {
-                'success': True,
-                'type': 'event',
-                'json': event.to_json()
-            }
-        elif export_id in interpreter.periods:
-            period = interpreter.periods[export_id]
-            response = {
-                'success': True,
-                'type': 'period',
-                'json': period.to_json()
-            }
-        elif export_id in interpreter.relationships:
-            relationship = interpreter.relationships[export_id]
-            response = {
-                'success': True,
-                'type': 'period',
-                'json': relationship.to_json()
-            }
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Could not find exported component with ID: {export_id}'
-            })
+        for export_id in interpreter.already_exported:
+            component_data = None
+            
+            if export_id in interpreter.timelines:
+                timeline = interpreter.timelines[export_id]
+                component_data = {
+                    'id': export_id,
+                    'type': 'timeline',
+                    'title': timeline.title,
+                    'json': timeline.generate_json(),
+                    'image': base64.b64encode(timeline.generate_png_bytes()).decode('utf-8')
+                }
+            elif export_id in interpreter.events:
+                event = interpreter.events[export_id]
+                component_data = {
+                    'id': export_id,
+                    'type': 'event',
+                    'title': event.title,
+                    'json': event.to_json()
+                }
+            elif export_id in interpreter.periods:
+                period = interpreter.periods[export_id]
+                component_data = {
+                    'id': export_id,
+                    'type': 'period',
+                    'title': period.title,
+                    'json': period.to_json()
+                }
+            elif export_id in interpreter.relationships:
+                relationship = interpreter.relationships[export_id]
+                component_data = {
+                    'id': export_id,
+                    'type': 'relationship',
+                    'title': f"Relationship {relationship.id}",
+                    'json': relationship.to_json()
+                }
+                
+            if component_data:
+                exported_components.append(component_data)
         
-        return jsonify(response)
+        return jsonify({
+            'success': True,
+            'components': exported_components
+        })
         
     except Exception as e:
         print(f"Error in visualization: {str(e)}")
