@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Dict
 from .timeline_component import TimelineComponent
 from .date import Date
@@ -20,5 +21,10 @@ class Event(TimelineComponent):
     def export_json(self, filename: str = None):
         if filename is None:
             filename = f"{self.id}.json"
-        with open(filename, 'w') as f:
+        # Ensure output directory exists
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
+        # Create full path for the file
+        filepath = os.path.join(output_dir, filename)
+        with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2) 
