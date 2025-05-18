@@ -23,16 +23,44 @@ function updateLineNumbers() {
     const lineNumbers = document.getElementById('line-numbers');
     const lines = textarea.value.split('\n');
     
-    // Update line numbers content
-    lineNumbers.innerHTML = lines.map((_, i) => i + 1).join('\n');
+    // Create line numbers with proper height calculation
+    const lineNumbersContent = document.createElement('div');
+    lineNumbersContent.style.position = 'relative';
     
-    // Update line numbers width
-    const width = calculateLineNumberWidth(lines.length);
-    lineNumbers.style.width = `${width}px`;
-    lineNumbers.style.minWidth = `${width}px`;
+    lines.forEach((_, i) => {
+        const lineNumber = document.createElement('div');
+        lineNumber.textContent = (i + 1).toString();
+        lineNumber.style.height = `${getLineHeight(textarea, i)}px`;
+        lineNumbersContent.appendChild(lineNumber);
+    });
+    
+    // Update line numbers content
+    lineNumbers.innerHTML = '';
+    lineNumbers.appendChild(lineNumbersContent);
     
     // Synchronize scroll position
     lineNumbers.scrollTop = textarea.scrollTop;
+}
+
+function getLineHeight(textarea, lineIndex) {
+    const lines = textarea.value.split('\n');
+    const lineContent = lines[lineIndex];
+    
+    // Create a hidden div to measure the wrapped height
+    const measureDiv = document.createElement('div');
+    measureDiv.style.position = 'absolute';
+    measureDiv.style.visibility = 'hidden';
+    measureDiv.style.width = `${textarea.clientWidth}px`;
+    measureDiv.style.whiteSpace = 'pre-wrap';
+    measureDiv.style.wordWrap = 'break-word';
+    measureDiv.style.font = window.getComputedStyle(textarea).font;
+    measureDiv.textContent = lineContent || ' '; // Use space for empty lines
+    
+    document.body.appendChild(measureDiv);
+    const height = measureDiv.offsetHeight;
+    document.body.removeChild(measureDiv);
+    
+    return height;
 }
 
 function handleTabKey(event) {

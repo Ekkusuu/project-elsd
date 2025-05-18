@@ -71,6 +71,8 @@ h2 {
     line-height: inherit;
     background: transparent;
     overflow-y: scroll;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 #code-editor:focus {
