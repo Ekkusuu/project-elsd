@@ -35,12 +35,35 @@ function updateLineNumbers() {
     lineNumbers.scrollTop = textarea.scrollTop;
 }
 
+function handleTabKey(event) {
+    if (event.key === 'Tab') {
+        event.preventDefault();
+        
+        const textarea = event.target;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        // Insert 4 spaces at cursor position
+        const spaces = '    ';
+        textarea.value = textarea.value.substring(0, start) + spaces + textarea.value.substring(end);
+        
+        // Move cursor after the inserted spaces
+        textarea.selectionStart = textarea.selectionEnd = start + spaces.length;
+        
+        // Update line numbers
+        updateLineNumbers();
+    }
+}
+
 function setupEditor() {
     const textarea = document.getElementById('code-editor');
     const lineNumbers = document.getElementById('line-numbers');
     
     // Update line numbers on input
     textarea.addEventListener('input', updateLineNumbers);
+    
+    // Handle tab key
+    textarea.addEventListener('keydown', handleTabKey);
     
     // Synchronize scrolling
     textarea.addEventListener('scroll', () => {
