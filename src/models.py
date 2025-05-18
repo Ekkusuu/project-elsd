@@ -205,7 +205,7 @@ class Period(TimelineComponent):
 
 
 class Relationship:
-    VALID_TYPES = {
+    STANDARD_TYPES = {
         "CAUSE_EFFECT", "CONTEMPORANEOUS", "PRECEDES", 
         "FOLLOWS", "INCLUDES", "EXCLUDES"
     }
@@ -217,7 +217,6 @@ class Relationship:
         self.to_component = to_component
         self._type = None
         self.type = relationship_type  # Using the setter
-        self.validate_relationship()
 
     @property
     def type(self) -> str:
@@ -225,12 +224,18 @@ class Relationship:
 
     @type.setter
     def type(self, value: str):
+        # Clean up the value
         clean_value = value.upper().replace("-", "_")
-        if clean_value not in self.VALID_TYPES:
-            raise ValueError(f"Relationship type must be one of {self.VALID_TYPES}")
-        self._type = clean_value
+        
+        # If it's a standard type, validate it
+        if clean_value in self.STANDARD_TYPES:
+            self._type = clean_value
+        else:
+            # For custom types, store the original value (not uppercased)
+            self._type = value
 
     def validate_relationship(self):
+        # Only validate INCLUDES relationship type
         if self.type == "INCLUDES":
             if not isinstance(self.from_component, Period):
                 raise ValueError("'INCLUDES' relationship requires a Period as the 'from' component")
