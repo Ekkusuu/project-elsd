@@ -11,12 +11,19 @@ class Event(TimelineComponent):
 
     def to_dict(self) -> dict:
         base_dict = super().to_dict()
-        base_dict["date"] = {
-            "year": self.date.year,
-            "month": self.date.month,
-            "day": self.date.day
-        }
+        base_dict.update({
+            "type": "event",
+            "date": {
+                "year": self.date.year,
+                "month": self.date.month,
+                "day": self.date.day
+            }
+        })
         return base_dict
+
+    def to_json(self) -> str:
+        """Generate the event data as a JSON string."""
+        return json.dumps(self.to_dict(), indent=2)
 
     def export_json(self, filename: str = None):
         if filename is None:
@@ -26,5 +33,7 @@ class Event(TimelineComponent):
         os.makedirs(output_dir, exist_ok=True)
         # Create full path for the file
         filepath = os.path.join(output_dir, filename)
+        # Generate and save JSON
+        json_data = self.to_json()
         with open(filepath, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2) 
+            f.write(json_data) 

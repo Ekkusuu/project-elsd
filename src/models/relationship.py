@@ -1,4 +1,6 @@
+import json
 from .timeline_component import TimelineComponent
+from .period import Period
 
 class Relationship:
     STANDARD_TYPES = {
@@ -38,8 +40,13 @@ class Relationship:
 
     def to_dict(self) -> dict:
         return {
+            "type": "relationship",
             "id": self.id,
             "from": self.from_component.id,
             "to": self.to_component.id,
-            "type": self.type
-        } 
+            "relationship_type": self.type
+        }
+
+    def to_json(self) -> str:
+        """Generate the relationship data as a JSON string."""
+        return json.dumps(self.to_dict(), indent=2) 
