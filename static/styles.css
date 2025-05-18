@@ -1,0 +1,114 @@
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 40px);
+}
+
+.editor-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.visualization-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.editor-wrapper {
+    flex-grow: 1;
+    display: flex;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    overflow: hidden;
+    position: relative;
+}
+
+.line-numbers {
+    padding: 10px 8px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #ddd;
+    color: #666;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: right;
+    user-select: none;
+    white-space: pre;
+    min-width: 25px;
+    margin: 0;
+    overflow-y: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1;
+}
+
+textarea {
+    flex-grow: 1;
+    padding: 10px;
+    padding-left: calc(25px + 16px + 1px); /* line-numbers width + padding + border */
+    font-family: monospace;
+    font-size: 14px;
+    border: none;
+    resize: none;
+    line-height: 1.5;
+    outline: none;
+    white-space: pre;
+    overflow-y: scroll;
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.result {
+    flex-grow: 1;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow-y: auto;
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+#timeline-image {
+    max-width: 100%;
+    height: auto;
+}
+
+.json-view {
+    font-family: monospace;
+    white-space: pre-wrap;
+    font-size: 12px;
+} 
