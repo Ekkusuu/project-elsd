@@ -3,18 +3,26 @@ event E1 {
     date = 264;
     importance = high;
 };
+
 event E2 {
-    title = "First Punic War Begins";
-    date = 500;
-    importance = high;
+    title = "Battle of Agrigentum";
+    date = 562;
+    importance = medium;
 };
 
 timeline punicWar {
-    title = "First punic war";
-    E1,E2;;
+    title = "Punic War Events";
+    E1, E2;
 };
 
 main {
+for item in punicWar {
+    if (true) {
+      modify item {
+        importance = low;
+      }
+    }
+  }
 
 export punicWar;
 };

@@ -1,6 +1,6 @@
 {
     "timeline_id": "punicWar",
-    "title": "First punic war",
+    "title": "Punic War Events",
     "events": [
         {
             "id": "E1",
@@ -8,15 +8,15 @@
             "date": {
                 "year": 264
             },
-            "importance": "HIGH"
+            "importance": "LOW"
         },
         {
             "id": "E2",
-            "title": "First Punic War Begins",
+            "title": "Battle of Agrigentum",
             "date": {
-                "year": 500
+                "year": 562
             },
-            "importance": "HIGH"
+            "importance": "LOW"
         }
     ],
     "periods": []

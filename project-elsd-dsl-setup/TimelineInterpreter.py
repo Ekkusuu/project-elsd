@@ -783,11 +783,17 @@ class TimelineInterpreter(TimelineParserListener):
 
     # ===== EXPORT handling (gated on enabled_stack) =====
     def enterExportStmt(self, ctx):
-        # If we’re currently disabled (inside if(false)…), skip!
+        # Determine the "export_id" by checking for loop‑bound variables first
+        name = ctx.ID().getText()           # e.g. "comp"
+        if hasattr(self, name):
+            export_id = getattr(self, name) # e.g. "E1" or "E2"
+        else:
+            export_id = name                # a regular literal ID
+
+        # Now you can gate on enabled_stack as before...
         if not self.enabled_stack[-1]:
             return
 
-        export_id = ctx.ID().getText()
         print(f"Export requested for: {export_id}")
 
         # Prevent duplicate exports
@@ -834,6 +840,9 @@ class TimelineInterpreter(TimelineParserListener):
 
         else:
             print(f"[Warning] ID '{export_id}' not found.")
+
+
+
 
     def handleStatement(self, ctx):
         # EXPORT
