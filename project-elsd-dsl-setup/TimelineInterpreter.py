@@ -973,25 +973,33 @@ class TimelineInterpreter(TimelineParserListener):
             if parsed and "year" in parsed:
                 return parsed["year"]
 
-        # 2) ID.property
+        # 2) ID.property  (handles both literal IDs and loop vars)
         if ctx.ID() and ctx.property_():
-            obj_id = ctx.ID().getText()
+            # resolve loop var → real ID if needed
+            name = ctx.ID().getText()                # e.g. "item"
+            if hasattr(self, name):
+                obj_id = getattr(self, name)         # e.g. "E1"
+            else:
+                obj_id = name                        # e.g. "E1" if literal
+
             prop   = ctx.property_().getText().lower()
 
-            # look up the raw value
+            # now lookup on the real object
             if obj_id in self.events and prop in self.events[obj_id]:
                 val = self.events[obj_id][prop]
             elif obj_id in self.periods and prop in self.periods[obj_id]:
                 val = self.periods[obj_id][prop]
+            elif obj_id in self.timelines and prop in self.timelines[obj_id]:
+                val = self.timelines[obj_id][prop]
             else:
                 val = None
 
-            # if it’s a date‐dict, pull out the year
+            # if it’s a date‐dict, unwrap the year
             if isinstance(val, dict) and "year" in val:
                 return val["year"]
             return val
 
-        # 3) STRING
+        # 3) STRING literal
         if ctx.STRING():
             return ctx.STRING().getText().strip('"')
 

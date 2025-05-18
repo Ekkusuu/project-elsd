@@ -17,7 +17,7 @@ timeline punicWar {
 
 main {
   for item in punicWar {
-    if (E2.date >= 562) {
+    if (item.date == 562) {
       modify item {
         importance = high;
       };
