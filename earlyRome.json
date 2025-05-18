@@ -6,17 +6,17 @@
             "id": "E1",
             "title": "Founding of Rome",
             "date": {
-                "year": 753
+                "year": 300
             },
-            "importance": "HIGH"
+            "importance": "MEDIUM"
         },
         {
             "id": "E2",
             "title": "Battle of Allia",
             "date": {
-                "year": 390
+                "year": 700
             },
-            "importance": "MEDIUM"
+            "importance": "LOW"
         }
     ],
     "periods": []

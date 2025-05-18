@@ -1,0 +1,35 @@
+{
+    "timeline_id": "cityHistory",
+    "title": "City History",
+    "events": [
+        {
+            "id": "E1",
+            "title": "Founding of City",
+            "date": {
+                "year": 500
+            },
+            "importance": "MEDIUM"
+        },
+        {
+            "id": "E2",
+            "title": "First Council",
+            "date": {
+                "year": 480
+            },
+            "importance": "MEDIUM"
+        }
+    ],
+    "periods": [
+        {
+            "id": "P1",
+            "title": "Early Growth",
+            "start": {
+                "year": 500
+            },
+            "end": {
+                "year": 650
+            },
+            "importance": "MEDIUM"
+        }
+    ]
+}

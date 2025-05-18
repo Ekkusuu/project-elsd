@@ -1,28 +1,38 @@
 event E1 {
-    title = "First Punic War Begins";
-    date = 264;
+    title = "Founding of City";
+    date = 500;
     importance = high;
 };
 
 event E2 {
-    title = "Battle of Agrigentum";
-    date = 562;
+    title = "First Council";
+    date = 480;
     importance = medium;
 };
 
-timeline punicWar {
-    title = "Punic War Events";
-    E1, E2;
+period P1 {
+    title = "Early Growth";
+    start = 500;
+    end = 650;
+    importance = low;
+};
+
+timeline cityHistory {
+    title = "City History";
+    E1, E2, P1;
 };
 
 main {
-  for item in punicWar {
-    if (item.date == 562) {
-      modify item {
-        importance = high;
-      };
-    }
-  };
-
-export punicWar;
+    for item in cityHistory {
+        if (item.importance == HIGH) {
+            modify item {
+                importance = low;
+            };
+        } else {
+            modify item {
+                importance = medium;
+            };
+        };
+    };
+    export cityHistory;
 };

@@ -19,6 +19,7 @@ class TimelineInterpreter(TimelineParserListener):
         self.already_exported = set()
         self.validation_errors = []
         self.enabled_stack = [True]
+        self.in_main = False
 
     def parse_year_literal(self, raw):
         """
@@ -762,6 +763,8 @@ class TimelineInterpreter(TimelineParserListener):
         # push: only enabled if we were already enabled AND this condition is True
         self.enabled_stack.append(self.enabled_stack[-1] and result)
 
+
+
     def exitIfStmt(self, ctx):
         # pop back to previous enabled/disabled state
         self.enabled_stack.pop()
@@ -785,6 +788,8 @@ class TimelineInterpreter(TimelineParserListener):
 
     # ===== EXPORT handling (gated on enabled_stack) =====
     def enterExportStmt(self, ctx):
+        if not self.in_main or not self.enabled_stack[-1]:
+            return
         # Determine the "export_id" by checking for loop‑bound variables first
         name = ctx.ID().getText()           # e.g. "comp"
         if hasattr(self, name):
@@ -804,7 +809,6 @@ class TimelineInterpreter(TimelineParserListener):
             return
         self.already_exported.add(export_id)
 
-        # … rest of your existing export logic goes here …
         if export_id in self.timelines:
             # timeline export
             timeline = self.timelines[export_id]
@@ -845,34 +849,78 @@ class TimelineInterpreter(TimelineParserListener):
 
 
     def enterModifyStmt(self, ctx):
-        # 1) Figure out which object we’re modifying
-        name = ctx.ID().getText()               # e.g. "item"
+        # Resolve loop vars as before
+        name = ctx.ID().getText()
         if hasattr(self, name):
-            target_id = getattr(self, name)     # e.g. "E1" from your for-loop
+            target_id = getattr(self, name)
         else:
             target_id = name
 
-        # 2) Only modify if we’re enabled
-        if not self.enabled_stack[-1]:
+        # Only when enabled
+        if not self.in_main or not self.enabled_stack[-1]:
             return
 
-        # 3) Find the dict for that ID
+        # Determine which dict we're editing
         if target_id in self.events:
-            obj = self.events[target_id]
+            obj      = self.events[target_id]
+            kind     = "event"
+            allowed  = {"title", "date", "importance"}
         elif target_id in self.periods:
-            obj = self.periods[target_id]
-        elif target_id in self.timelines:
-            obj = self.timelines[target_id]
+            obj      = self.periods[target_id]
+            kind     = "period"
+            allowed  = {"title", "start", "end", "importance"}
+        elif target_id in self.relationships:
+            obj      = self.relationships[target_id]
+            kind     = "relationship"
+            allowed  = {"from", "to", "type"}
         else:
             print(f"[Warning] Cannot modify unknown ID '{target_id}'")
             return
 
-        # 4) Apply each propertyAssignment: property = expr;
+        # Apply each assignment
         for assign in ctx.propertyAssignment():
-            prop_name = assign.property_().getText().lower()  # e.g. "importance"
-            new_value = self.evaluate_expr(assign.expr())
-            obj[prop_name] = new_value
-            print(f"[Modify] {target_id}.{prop_name} ← {new_value}")
+            prop = assign.property_().getText().lower()  # e.g. "date", "title", "from"
+            if prop not in allowed:
+                print(f"[Warning] Cannot modify {kind} property '{prop}'")
+                continue
+
+            # Evaluate the RHS
+            raw_val = assign.expr()
+            if prop in {"date", "start", "end"}:
+                # parse + validate
+                literal = raw_val.getText()
+                parsed  = self.parse_year_literal(literal)
+                if not self.validate_date(parsed):
+                    continue
+                new_val = parsed
+
+            elif prop == "title":
+                text = raw_val.getText()
+                if not self.validate_string_literal(text, f"{kind} title"):
+                    continue
+                new_val = text.strip('"')
+
+            elif prop in {"from", "to"}:
+                new_id = raw_val.getText()
+                if new_id not in self.events and new_id not in self.periods:
+                    print(f"[Warning] Cannot set {kind}. {prop} → unknown ID '{new_id}'")
+                    continue
+                new_val = new_id
+
+            elif prop == "type":
+                # could check membership in your relationshipType tokens here
+                new_val = raw_val.getText()
+
+            elif prop == "importance":
+                new_val = raw_val.getText().upper()
+
+            else:
+                # fallback to generic expr eval
+                new_val = self.evaluate_expr(raw_val)
+
+            # Commit it
+            obj[prop] = new_val
+            print(f"[Modify] {target_id}.{prop} ← {new_val}")
 
     def handleStatement(self, ctx):
         # EXPORT
@@ -939,9 +987,10 @@ class TimelineInterpreter(TimelineParserListener):
             pass
 
     def enterMainBlock(self, ctx):
+        self.in_main = True
         for stmt in ctx.statement():
             self.handleStatement(stmt)
-
+        self.in_main = False
 
 
     def evaluate_condition(self, ctx):
