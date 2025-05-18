@@ -28,23 +28,23 @@ def visualize():
         # Get the timeline code from the request
         timeline_code = request.json.get('code', '')
         
-        # Ensure output directory exists
-        output_dir = os.path.join(os.getcwd(), "output")
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Save the code to a temporary file
-        with open('temp_input.timeline', 'w') as f:
-            f.write(timeline_code)
-        
-        # Process the timeline
-        input_stream = FileStream('temp_input.timeline', encoding='utf-8')
+        # Check if the code has an export statement
+        if 'export' not in timeline_code:
+            return jsonify({
+                'success': False,
+                'error': 'No export statement found. Add an export command in the main block to visualize the timeline.',
+                'error_type': 'export_missing'
+            })
+
+        # Process the timeline code directly from memory
+        input_stream = InputStream(timeline_code)
         lexer = TimelineLexer(input_stream)
         tokens = CommonTokenStream(lexer)
         parser = TimelineParser(tokens)
         tree = parser.program()
 
         interpreter = TimelineInterpreter()
-        interpreter.visit(tree)
+        result = interpreter.visit(tree)
 
         # Check for validation errors
         if interpreter.validation_errors:
@@ -62,45 +62,46 @@ def visualize():
                 'error_type': 'export_missing'
             })
 
-        # Get the first exported timeline
+        # Get the first exported component's data
         export_id = next(iter(interpreter.already_exported))
-        output_dir = os.path.join(os.getcwd(), "output")
-        json_path = os.path.join(output_dir, f"{export_id}.json")
-
-        # Read the JSON file
-        try:
-            with open(json_path, 'r') as f:
-                json_data = f.read()
-        except FileNotFoundError:
+        
+        # Get the exported component
+        if export_id in interpreter.timelines:
+            timeline = interpreter.timelines[export_id]
+            response = {
+                'success': True,
+                'type': 'timeline',
+                'json': timeline.generate_json(),
+                'image': base64.b64encode(timeline.generate_png_bytes()).decode('utf-8')
+            }
+        elif export_id in interpreter.events:
+            event = interpreter.events[export_id]
+            response = {
+                'success': True,
+                'type': 'event',
+                'json': event.to_json()
+            }
+        elif export_id in interpreter.periods:
+            period = interpreter.periods[export_id]
+            response = {
+                'success': True,
+                'type': 'period',
+                'json': period.to_json()
+            }
+        elif export_id in interpreter.relationships:
+            relationship = interpreter.relationships[export_id]
+            response = {
+                'success': True,
+                'type': 'period',
+                'json': relationship.to_json()
+            }
+        else:
             return jsonify({
                 'success': False,
-                'error': f'Failed to read JSON file: {json_path} not found'
+                'error': f'Could not find exported component with ID: {export_id}'
             })
-
-        # If it's a timeline, try to read the PNG
-        img_data = None
-        if export_id in interpreter.timelines:
-            png_path = os.path.join(output_dir, f"{export_id}.png")
-            try:
-                with open(png_path, 'rb') as f:
-                    img_data = base64.b64encode(f.read()).decode('utf-8')
-            except FileNotFoundError:
-                print(f"Warning: PNG file not found at {png_path}")
-            except Exception as e:
-                print(f"Warning: Failed to read PNG file: {str(e)}")
-
-        # Clean up temporary files
-        try:
-            os.remove('temp_input.timeline')
-        except:
-            pass
         
-        return jsonify({
-            'success': True,
-            'image': img_data,
-            'json': json_data,
-            'type': 'timeline' if export_id in interpreter.timelines else 'component'
-        })
+        return jsonify(response)
         
     except Exception as e:
         print(f"Error in visualization: {str(e)}")
