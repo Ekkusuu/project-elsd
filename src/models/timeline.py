@@ -1,253 +1,14 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional
 import json
+from typing import List, Dict
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from collections import defaultdict
-
-
-@dataclass
-class Date:
-    year: int
-    month: Optional[int] = None
-    day: Optional[int] = None
-
-    def __init__(self, date_dict: Dict):
-        if 'year' not in date_dict:
-            raise ValueError("Year is required")
-        
-        self.year = date_dict.get('year')
-        self.month = date_dict.get('month')
-        self.day = date_dict.get('day')
-
-        if not isinstance(self.year, int):
-            raise ValueError("Year must be an integer")
-
-        if self.month is not None:
-            if not isinstance(self.month, int):
-                raise ValueError("Month must be an integer")
-            if not 1 <= self.month <= 12:
-                raise ValueError("Month must be between 1 and 12")
-
-        if self.day is not None:
-            if not isinstance(self.day, int):
-                raise ValueError("Day must be an integer")
-            if self.month is None:
-                raise ValueError("Cannot specify day without month")
-
-            days_in_month = self._days_in_month(self.year, self.month)
-            if not 1 <= self.day <= days_in_month:
-                raise ValueError(f"Day must be between 1 and {days_in_month} for month {self.month}")
-
-    def _days_in_month(self, year: int, month: int) -> int:
-        days_per_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        
-        if month == 2 and self._is_leap_year(year):
-            return 29
-            
-        return days_per_month[month]
-
-    def _is_leap_year(self, year: int) -> bool:
-        calc_year = year if year > 0 else abs(year) + 1
-        
-        # Leap year rules:
-        # 1. Year must be divisible by 4
-        # 2. If divisible by 100, must also be divisible by 400
-        return calc_year % 4 == 0 and (calc_year % 100 != 0 or calc_year % 400 == 0)
-
-    def __str__(self) -> str:
-        parts = []
-
-        if self.day is not None:
-            parts.append(f"{self.day}")
-
-        if self.month is not None:
-            parts.append(f"{self.month}")
-
-        year_str = f"{abs(self.year)}"
-        if self.year < 0:
-            year_str += " BCE"
-        else:
-            year_str += " CE"
-        parts.append(year_str)
-        
-        return "-".join(parts)
-
-    def __lt__(self, other):
-        if not isinstance(other, Date):
-            raise TypeError("Can only compare with another Date object")
-        
-        # Compare years first
-        if self.year != other.year:
-            return self.year < other.year
-            
-        # If months are available, compare them
-        if self.month is not None and other.month is not None:
-            if self.month != other.month:
-                return self.month < other.month
-        elif self.month is not None:
-            # If this date has a month but other doesn't, this is more specific
-            return False
-        elif other.month is not None:
-            # If other date has a month but this doesn't, other is more specific
-            return True
-                
-        # If days are available, compare them
-        if self.day is not None and other.day is not None:
-            if self.day != other.day:
-                return self.day < other.day
-        elif self.day is not None:
-            # If this date has a day but other doesn't, this is more specific
-            return False
-        elif other.day is not None:
-            # If other date has a day but this doesn't, other is more specific
-            return True
-            
-        return False
-
-    def __eq__(self, other):
-        if not isinstance(other, Date):
-            return False
-        return (self.year == other.year and 
-                self.month == other.month and 
-                self.day == other.day)
-
-    def __le__(self, other):
-        return self < other or self == other
-
-    def __gt__(self, other):
-        return not self <= other
-
-    def __ge__(self, other):
-        return not self < other
-
-
-class TimelineComponent:
-    def __init__(self, id: str, title: str, importance: str = "MEDIUM"):
-        self.id = id
-        self.title = title
-        self._importance = None
-        self.importance = importance  # Using the setter
-
-    @property
-    def importance(self) -> str:
-        return self._importance
-
-    @importance.setter
-    def importance(self, value: str):
-        valid_importance = ["HIGH", "MEDIUM", "LOW"]
-        if value.upper() not in valid_importance:
-            raise ValueError(f"Importance must be one of {valid_importance}")
-        self._importance = value.upper()
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "title": self.title,
-            "importance": self.importance
-        }
-
-
-class Event(TimelineComponent):
-    def __init__(self, id: str, title: str, date: Dict, importance: str = "MEDIUM"):
-        super().__init__(id, title, importance)
-        self.date = Date(date)
-
-    def to_dict(self) -> dict:
-        base_dict = super().to_dict()
-        base_dict["date"] = {
-            "year": self.date.year,
-            "month": self.date.month,
-            "day": self.date.day
-        }
-        return base_dict
-
-    def export_json(self, filename: str = None):
-        if filename is None:
-            filename = f"{self.id}.json"
-        with open(filename, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2)
-
-
-class Period(TimelineComponent):
-    def __init__(self, id: str, title: str, start: Dict, end: Dict, importance: str = "MEDIUM"):
-        super().__init__(id, title, importance)
-        self.start = Date(start)
-        self.end = Date(end)
-        self.validate_dates()
-
-    def validate_dates(self):
-        if self.end < self.start:
-            raise ValueError(f"End date ({self.end}) cannot be before start date ({self.start})")
-
-    def to_dict(self) -> dict:
-        base_dict = super().to_dict()
-        base_dict.update({
-            "start": {
-                "year": self.start.year,
-                "month": self.start.month,
-                "day": self.start.day
-            },
-            "end": {
-                "year": self.end.year,
-                "month": self.end.month,
-                "day": self.end.day
-            }
-        })
-        return base_dict
-
-    def export_json(self, filename: str = None):
-        if filename is None:
-            filename = f"{self.id}.json"
-        with open(filename, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2)
-
-
-class Relationship:
-    STANDARD_TYPES = {
-        "CAUSE_EFFECT", "CONTEMPORANEOUS", "PRECEDES", 
-        "FOLLOWS", "INCLUDES", "EXCLUDES"
-    }
-
-    def __init__(self, id: str, from_component: TimelineComponent, 
-                 to_component: TimelineComponent, relationship_type: str):
-        self.id = id
-        self.from_component = from_component
-        self.to_component = to_component
-        self._type = None
-        self.type = relationship_type  # Using the setter
-
-    @property
-    def type(self) -> str:
-        return self._type
-
-    @type.setter
-    def type(self, value: str):
-        # Clean up the value
-        clean_value = value.upper().replace("-", "_")
-        
-        # If it's a standard type, validate it
-        if clean_value in self.STANDARD_TYPES:
-            self._type = clean_value
-        else:
-            # For custom types, store the original value (not uppercased)
-            self._type = value
-
-    def validate_relationship(self):
-        # Only validate INCLUDES relationship type
-        if self.type == "INCLUDES":
-            if not isinstance(self.from_component, Period):
-                raise ValueError("'INCLUDES' relationship requires a Period as the 'from' component")
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "from": self.from_component.id,
-            "to": self.to_component.id,
-            "type": self.type
-        }
-
+from .timeline_component import TimelineComponent
+from .event import Event
+from .period import Period
+from .relationship import Relationship
+from .date import Date
 
 class Timeline:
     HIGH_COLORS = ["#1E90FF", "#007FFF", "#3399FF", "#0055FF", "#4682B4", "#4169E1", "#0000CD", "#0000FF"]
@@ -358,7 +119,7 @@ class Timeline:
                         raise ValueError(f"Relationship {rel.id}: In an excludes relationship, event {from_comp.id} must not occur during period {to_comp.id}")
                 else:  # Both are events
                     if from_comp.date == to_comp.date:
-                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, events {from_comp.id} and {to_comp.id} must not occur at the same time")
+                        raise ValueError(f"Relationship {rel.id}: In an excludes relationship, events {from_comp.id} and {to_comp.id} must not occur at the same time") 
 
     def _date_to_decimal(self, date):
         """Convert a Date object to a decimal year for precise positioning"""
@@ -1024,4 +785,4 @@ class Timeline:
         if filename is None:
             filename = f"{self.id}.json"
         with open(filename, 'w') as f:
-            json.dump(self.to_dict(), f, indent=2)
+            json.dump(self.to_dict(), f, indent=2) 
