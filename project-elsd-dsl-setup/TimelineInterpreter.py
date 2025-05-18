@@ -7,6 +7,8 @@ import matplotlib.patches as mpatches
 from collections import defaultdict
 import math
 import calendar
+from antlr4 import ParserRuleContext, TerminalNode
+from TimelineParser import TimelineParser
 
 class TimelineInterpreter(TimelineParserListener):
     def __init__(self):
@@ -877,30 +879,38 @@ class TimelineInterpreter(TimelineParserListener):
         if ctx.exportStmt():
             self.enterExportStmt(ctx.exportStmt())
 
-        # IF
+        # IF / ELSE
         elif ctx.ifStmt():
             if_ctx = ctx.ifStmt()
-            # 1) evaluate and push
+
+            # 1) Evaluate the condition and push enable‑flag
             result = self.evaluate_condition(if_ctx.condition())
-            # combine with current stack top
             self.enabled_stack.append(self.enabled_stack[-1] and result)
 
-            # 2) run the 'then' block
+            # 2) Run the 'then' statements
             for st in if_ctx.statement():
-                self.handleStatement(st)
+                # But only those that occur *before* the ELSE token
+                # We'll filter below.
+                pass
+            # Instead of the above naive loop, we do child‑scanning:
 
-            # 3) pop back out of the if
+            saw_else = False
+            for child in if_ctx.children:
+                # Detect the ELSE terminal
+                if isinstance(child, TerminalNode) and child.getSymbol().type == TimelineParser.ELSE:
+                    saw_else = True
+                    # Pop off the 'then' context
+                    self.enabled_stack.pop()
+                    # Push the 'else' context (negated condition)
+                    self.enabled_stack.append(self.enabled_stack[-1] and not result)
+                    continue
+
+                # Dispatch any statement nodes
+                if isinstance(child, ParserRuleContext) and child.getRuleIndex() == TimelineParser.RULE_statement:
+                    self.handleStatement(child)
+
+            # Pop the final context (whether then or else)
             self.enabled_stack.pop()
-
-            # 4) if there's an ELSE, evaluate that separately
-            if if_ctx.ELSE():
-                # ELSE block is child index 6…8 in your grammar, but easiest is:
-                else_stmts = if_ctx.getChild(6).statement()
-                # ELSE inherits the *negation* of the then‑condition
-                self.enabled_stack.append(self.enabled_stack[-1] and not result)
-                for st in else_stmts:
-                    self.handleStatement(st)
-                self.enabled_stack.pop()
 
         # FOR
         elif ctx.forStmt():

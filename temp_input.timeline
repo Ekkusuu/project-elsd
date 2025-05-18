@@ -16,13 +16,13 @@ timeline punicWar {
 };
 
 main {
-for item in punicWar {
-    if (true) {
+  for item in punicWar {
+    if (E2.date >= 562) {
       modify item {
-        importance = low;
-      }
+        importance = high;
+      };
     }
-  }
+  };
 
 export punicWar;
 };
