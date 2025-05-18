@@ -4,47 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timeline DSL Visualizer</title>
-    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="editor-section">
-            <h2>Timeline DSL</h2>
+            <h2>Timeline DSL Code</h2>
             <div class="editor-wrapper">
                 <pre class="line-numbers" id="line-numbers"></pre>
                 <textarea id="code-editor" placeholder="Enter your timeline DSL code here..." spellcheck="false">{{ default_timeline }}</textarea>
             </div>
-            <button onclick="visualize()" class="button-visualize">Visualize</button>
+            <button onclick="visualize()">Visualize</button>
         </div>
         <div class="visualization-section">
+            <h2>Visualization</h2>
             <div class="result">
-                <div id="component-selector" class="component-selector" style="display: none;"></div>
+                <img id="timeline-image" style="display: none;">
                 <div id="error-message" class="error" style="display: none;"></div>
-                <div id="visualization-content" class="visualization-content" style="display: none;">
-                    <div class="tab-header">
-                        <div class="tab-selector">
-                            <button id="json-tab-btn" class="tab-button active" onclick="switchTab('json')">JSON</button>
-                            <button id="image-tab-btn" class="tab-button" onclick="switchTab('image')" style="display: none;">Image</button>
-                        </div>
-                        <div class="download-buttons">
-                            <button id="copy-json" onclick="copyJSON()" style="display: none;">Copy JSON</button>
-                            <button id="copy-png" onclick="copyImage()" style="display: none;">Copy Image</button>
-                            <button id="download-json" onclick="downloadJSON()" style="display: none;">Download JSON</button>
-                            <button id="download-png" onclick="downloadImage()" style="display: none;">Download PNG</button>
-                        </div>
-                    </div>
-                    <div class="tab-content">
-                        <div id="json-tab" class="tab-pane active">
-                            <div id="json-view" class="json-view"></div>
-                        </div>
-                        <div id="image-tab" class="tab-pane">
-                            <img id="timeline-image" style="display: none;">
-                        </div>
-                    </div>
-                </div>
+                <div id="json-view" class="json-view"></div>
             </div>
         </div>
     </div>
-    <script src="static/script.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html> 
