@@ -842,7 +842,35 @@ class TimelineInterpreter(TimelineParserListener):
             print(f"[Warning] ID '{export_id}' not found.")
 
 
+    def enterModifyStmt(self, ctx):
+        # 1) Figure out which object we’re modifying
+        name = ctx.ID().getText()               # e.g. "item"
+        if hasattr(self, name):
+            target_id = getattr(self, name)     # e.g. "E1" from your for-loop
+        else:
+            target_id = name
 
+        # 2) Only modify if we’re enabled
+        if not self.enabled_stack[-1]:
+            return
+
+        # 3) Find the dict for that ID
+        if target_id in self.events:
+            obj = self.events[target_id]
+        elif target_id in self.periods:
+            obj = self.periods[target_id]
+        elif target_id in self.timelines:
+            obj = self.timelines[target_id]
+        else:
+            print(f"[Warning] Cannot modify unknown ID '{target_id}'")
+            return
+
+        # 4) Apply each propertyAssignment: property = expr;
+        for assign in ctx.propertyAssignment():
+            prop_name = assign.property_().getText().lower()  # e.g. "importance"
+            new_value = self.evaluate_expr(assign.expr())
+            obj[prop_name] = new_value
+            print(f"[Modify] {target_id}.{prop_name} ← {new_value}")
 
     def handleStatement(self, ctx):
         # EXPORT
