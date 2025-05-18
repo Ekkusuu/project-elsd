@@ -28,6 +28,10 @@ def visualize():
         # Get the timeline code from the request
         timeline_code = request.json.get('code', '')
         
+        # Ensure output directory exists
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
+        
         # Save the code to a temporary file
         with open('temp_input.timeline', 'w') as f:
             f.write(timeline_code)
@@ -59,30 +63,47 @@ def visualize():
             })
 
         # Get the first exported timeline
-        timeline_id = next(iter(interpreter.already_exported))
-        
-        # Get the output file paths
+        export_id = next(iter(interpreter.already_exported))
         output_dir = os.path.join(os.getcwd(), "output")
-        png_path = os.path.join(output_dir, f"{timeline_id}.png")
-        json_path = os.path.join(output_dir, f"{timeline_id}.json")
+        json_path = os.path.join(output_dir, f"{export_id}.json")
 
-        # Read the generated files
-        with open(png_path, 'rb') as f:
-            img_data = base64.b64encode(f.read()).decode('utf-8')
-            
-        with open(json_path, 'r') as f:
-            json_data = f.read()
+        # Read the JSON file
+        try:
+            with open(json_path, 'r') as f:
+                json_data = f.read()
+        except FileNotFoundError:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to read JSON file: {json_path} not found'
+            })
+
+        # If it's a timeline, try to read the PNG
+        img_data = None
+        if export_id in interpreter.timelines:
+            png_path = os.path.join(output_dir, f"{export_id}.png")
+            try:
+                with open(png_path, 'rb') as f:
+                    img_data = base64.b64encode(f.read()).decode('utf-8')
+            except FileNotFoundError:
+                print(f"Warning: PNG file not found at {png_path}")
+            except Exception as e:
+                print(f"Warning: Failed to read PNG file: {str(e)}")
 
         # Clean up temporary files
-        os.remove('temp_input.timeline')
+        try:
+            os.remove('temp_input.timeline')
+        except:
+            pass
         
         return jsonify({
             'success': True,
             'image': img_data,
-            'json': json_data
+            'json': json_data,
+            'type': 'timeline' if export_id in interpreter.timelines else 'component'
         })
         
     except Exception as e:
+        print(f"Error in visualization: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)

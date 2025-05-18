@@ -19,9 +19,25 @@
         <div class="visualization-section">
             <h2>Visualization</h2>
             <div class="result">
-                <img id="timeline-image" style="display: none;">
+                <div id="tabs" class="tabs">
+                    <button id="image-tab-btn" class="tab-button" onclick="switchTab('image')" style="display: none;">Image</button>
+                    <button id="json-tab-btn" class="tab-button active" onclick="switchTab('json')">JSON</button>
+                </div>
+                <div class="tab-content">
+                    <div id="image-tab" class="tab-pane">
+                        <div class="tab-header">
+                            <button id="download-png" onclick="downloadImage()" style="display: none;">Download PNG</button>
+                        </div>
+                        <img id="timeline-image" style="display: none;">
+                    </div>
+                    <div id="json-tab" class="tab-pane active">
+                        <div class="tab-header">
+                            <button id="download-json" onclick="downloadJSON()" style="display: none;">Download JSON</button>
+                        </div>
+                        <div id="json-view" class="json-view"></div>
+                    </div>
+                </div>
                 <div id="error-message" class="error" style="display: none;"></div>
-                <div id="json-view" class="json-view"></div>
             </div>
         </div>
     </div>
