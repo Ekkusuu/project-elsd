@@ -4,27 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timeline DSL Visualizer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="static/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/theme-xcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-text.min.js"></script>
+    <script src="static/timeline-mode.js"></script>
+    <style>
+        .ace_keyword { color: #8959A8 !important; }
+        .ace_support.ace_function { color: #4271AE !important; }
+        .ace_constant.ace_language { color: #F5871F !important; }
+        .ace_string { color: #718C00 !important; }
+        .ace_numeric { color: #C99E00 !important; }
+        .ace_comment { color: #8E908C !important; font-style: italic; }
+        .ace_operator { color: #3E999F !important; }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="editor-section">
-            <h2>Timeline DSL Code</h2>
+            <h2>Timeline DSL</h2>
             <div class="editor-wrapper">
-                <pre class="line-numbers" id="line-numbers"></pre>
-                <textarea id="code-editor" placeholder="Enter your timeline DSL code here..." spellcheck="false">{{ default_timeline }}</textarea>
+                <div id="code-editor">{{ default_timeline }}</div>
             </div>
-            <button onclick="visualize()">Visualize</button>
+            <button onclick="visualize()" class="button-visualize">Visualize</button>
         </div>
         <div class="visualization-section">
-            <h2>Visualization</h2>
             <div class="result">
-                <img id="timeline-image" style="display: none;">
+                <div id="component-selector" class="component-selector" style="display: none;"></div>
                 <div id="error-message" class="error" style="display: none;"></div>
-                <div id="json-view" class="json-view"></div>
+                <div id="visualization-content" class="visualization-content" style="display: none;">
+                    <div class="tab-header">
+                        <div class="tab-selector">
+                            <button id="json-tab-btn" class="tab-button active" onclick="switchTab('json')">JSON</button>
+                            <button id="image-tab-btn" class="tab-button" onclick="switchTab('image')" style="display: none;">Image</button>
+                        </div>
+                        <div class="download-buttons">
+                            <button id="copy-json" onclick="copyJSON()" style="display: none;">Copy JSON</button>
+                            <button id="copy-png" onclick="copyImage()" style="display: none;">Copy Image</button>
+                            <button id="download-json" onclick="downloadJSON()" style="display: none;">Download JSON</button>
+                            <button id="download-png" onclick="downloadImage()" style="display: none;">Download PNG</button>
+                        </div>
+                    </div>
+                    <div class="tab-content">
+                        <div id="json-tab" class="tab-pane active">
+                            <div id="json-view" class="json-view"></div>
+                        </div>
+                        <div id="image-tab" class="tab-pane">
+                            <img id="timeline-image" style="display: none;">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="static/script.js"></script>
 </body>
 </html> 

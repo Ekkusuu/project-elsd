@@ -1,105 +1,27 @@
 let currentData = null;
-
-function calculateLineNumberWidth(numLines) {
-    // Create a temporary span to measure text width
-    const span = document.createElement('span');
-    span.style.visibility = 'hidden';
-    span.style.position = 'absolute';
-    span.style.whiteSpace = 'pre';
-    span.style.font = window.getComputedStyle(document.querySelector('.line-numbers')).font;
-    
-    // Get width of largest line number
-    span.textContent = numLines.toString();
-    document.body.appendChild(span);
-    const width = span.getBoundingClientRect().width;
-    document.body.removeChild(span);
-    
-    // Add padding for better appearance
-    return width; // 20px for padding + 10px extra space
-}
-
-function updateLineNumbers() {
-    const textarea = document.getElementById('code-editor');
-    const lineNumbers = document.getElementById('line-numbers');
-    const lines = textarea.value.split('\n');
-    
-    // Create line numbers with proper height calculation
-    const lineNumbersContent = document.createElement('div');
-    lineNumbersContent.style.position = 'relative';
-    
-    lines.forEach((_, i) => {
-        const lineNumber = document.createElement('div');
-        lineNumber.textContent = (i + 1).toString();
-        lineNumber.style.height = `${getLineHeight(textarea, i)}px`;
-        lineNumbersContent.appendChild(lineNumber);
-    });
-    
-    // Update line numbers content
-    lineNumbers.innerHTML = '';
-    lineNumbers.appendChild(lineNumbersContent);
-    
-    // Synchronize scroll position
-    lineNumbers.scrollTop = textarea.scrollTop;
-}
-
-function getLineHeight(textarea, lineIndex) {
-    const lines = textarea.value.split('\n');
-    const lineContent = lines[lineIndex];
-    
-    // Create a hidden div to measure the wrapped height
-    const measureDiv = document.createElement('div');
-    measureDiv.style.position = 'absolute';
-    measureDiv.style.visibility = 'hidden';
-    measureDiv.style.width = `${textarea.clientWidth}px`;
-    measureDiv.style.whiteSpace = 'pre-wrap';
-    measureDiv.style.wordWrap = 'break-word';
-    measureDiv.style.font = window.getComputedStyle(textarea).font;
-    measureDiv.textContent = lineContent || ' '; // Use space for empty lines
-    
-    document.body.appendChild(measureDiv);
-    const height = measureDiv.offsetHeight;
-    document.body.removeChild(measureDiv);
-    
-    return height;
-}
-
-function handleTabKey(event) {
-    if (event.key === 'Tab') {
-        event.preventDefault();
-        
-        const textarea = event.target;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        
-        // Insert 4 spaces at cursor position
-        const spaces = '    ';
-        textarea.value = textarea.value.substring(0, start) + spaces + textarea.value.substring(end);
-        
-        // Move cursor after the inserted spaces
-        textarea.selectionStart = textarea.selectionEnd = start + spaces.length;
-        
-        // Update line numbers
-        updateLineNumbers();
-    }
-}
+let editor = null;
 
 function setupEditor() {
-    const textarea = document.getElementById('code-editor');
-    const lineNumbers = document.getElementById('line-numbers');
+    // Initialize Ace editor
+    editor = ace.edit("code-editor");
+    editor.setTheme("ace/theme/xcode");
     
-    // Update line numbers on input
-    textarea.addEventListener('input', updateLineNumbers);
-    
-    // Handle tab key
-    textarea.addEventListener('keydown', handleTabKey);
-    
-    // Synchronize scrolling
-    textarea.addEventListener('scroll', () => {
-        lineNumbers.scrollTop = textarea.scrollTop;
+    // Configure editor settings
+    editor.setOptions({
+        fontSize: "14px",
+        showPrintMargin: false,
+        highlightActiveLine: true,
+        enableLiveAutocompletion: true,
+        enableSnippets: true,
+        tabSize: 4,
+        useSoftTabs: true,
+        printMarginColumn: 80,
+        displayIndentGuides: true,
+        showFoldWidgets: true
     });
-    
-    // Initial setup
-    updateLineNumbers();
+
+    // Set our custom Timeline mode
+    editor.session.setMode("ace/mode/timeline");
 }
 
 function showError(message) {
@@ -304,7 +226,7 @@ function showCopyFeedback(buttonId) {
 async function visualize() {
     clearError();
     
-    const code = document.getElementById('code-editor').value;
+    const code = editor.getValue();
     
     try {
         const response = await fetch('/visualize', {

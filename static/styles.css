@@ -32,51 +32,21 @@ h2 {
 }
 
 .editor-wrapper {
-    flex: 1;
-    display: flex;
     position: relative;
+    width: 100%;
+    height: calc(100vh - 120px);
     border: 1px solid #ccc;
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 10px;
-    background: #f8f9fa;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.line-numbers {
-    padding: 10px;
-    margin: 0;
-    background: #e9ecef;
-    border-right: 1px solid #ccc;
-    user-select: none;
-    color: #6c757d;
-    font-family: monospace;
-    white-space: pre;
-    overflow: hidden;
-    font-size: inherit;
-    line-height: inherit;
-    text-align: right;
-    flex-shrink: 0;
 }
 
 #code-editor {
-    flex: 1;
-    padding: 10px;
-    margin: 0;
-    border: none;
-    resize: none;
-    font-family: monospace;
-    font-size: inherit;
-    line-height: inherit;
-    background: transparent;
-    overflow-y: scroll;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-#code-editor:focus {
-    outline: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    font-size: 14px;
 }
 
 .button-visualize {
