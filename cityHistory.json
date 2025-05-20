@@ -6,17 +6,17 @@
             "id": "E1",
             "title": "Founding of City",
             "date": {
-                "year": 500
+                "year": 100
             },
-            "importance": "MEDIUM"
+            "importance": "LOW"
         },
         {
             "id": "E2",
             "title": "First Council",
             "date": {
-                "year": 480
+                "year": 300
             },
-            "importance": "MEDIUM"
+            "importance": "LOW"
         }
     ],
     "periods": [
@@ -24,10 +24,10 @@
             "id": "P1",
             "title": "Early Growth",
             "start": {
-                "year": 500
+                "year": 50
             },
             "end": {
-                "year": 650
+                "year": 350
             },
             "importance": "MEDIUM"
         }
