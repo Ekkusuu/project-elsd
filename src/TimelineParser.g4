@@ -45,9 +45,9 @@ expr: ID | STRING | dateExpr | INT | ID DOT property | importanceValue;
 
 property: TITLE | DATE | START | END | IMPORTANCE | TYPE | YEAR | MONTH | DAY;
 
-forStmt: FOR ID IN ID LCURLY statement* RCURLY SEMI;
+forStmt: FOR ID IN ID LCURLY statement* RCURLY;
 
-modifyStmt: MODIFY ID LCURLY propertyAssignment+ RCURLY SEMI;
+modifyStmt: MODIFY ID LCURLY propertyAssignment+ RCURLY;
 
 propertyAssignment: property EQ expr SEMI;
 
