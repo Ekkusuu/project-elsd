@@ -37,21 +37,21 @@ class TimelineInterpreter(TimelineParserVisitor):
             return str(year)
         return None
 
-    def parse_date_string(self, date_str):
-        """Convert a date string back to a dictionary format."""
-        if not isinstance(date_str, str):
-            return date_str
-            
-        parts = date_str.split('-')
-        if len(parts) == 3:  # day-month-year
-            return {"year": int(parts[2]), "month": int(parts[1]), "day": int(parts[0])}
-        elif len(parts) == 2:  # month-year
-            return {"year": int(parts[1]), "month": int(parts[0])}
-        else:  # year only
-            try:
-                return {"year": int(date_str)}
-            except ValueError:
-                return date_str
+    # def parse_date_string(self, date_str):
+    #     """Convert a date string back to a dictionary format."""
+    #     if not isinstance(date_str, str):
+    #         return date_str
+    #
+    #     parts = date_str.split('-')
+    #     if len(parts) == 3:  # day-month-year
+    #         return {"year": int(parts[2]), "month": int(parts[1]), "day": int(parts[0])}
+    #     elif len(parts) == 2:  # month-year
+    #         return {"year": int(parts[1]), "month": int(parts[0])}
+    #     else:  # year only
+    #         try:
+    #             return {"year": int(date_str)}
+    #         except ValueError:
+    #             return date_str
 
     def visitYearLiteral(self, ctx: TimelineParser.YearLiteralContext):
         year = int(ctx.INT().getText())
@@ -204,13 +204,18 @@ class TimelineInterpreter(TimelineParserVisitor):
 
     def visitIfStmt(self, ctx: TimelineParser.IfStmtContext):
         condition_result = self.visitCondition(ctx.condition())
-        
-        if condition_result:
+        if condition_result and ctx.ELSE():
             # Execute if block statements
+            print("then gets exec")
+            then_block = ctx.statement()[:len(ctx.statement()) // 2]
+            for stmt in then_block:
+                self.visit(stmt)
+        elif condition_result:
             for stmt in ctx.statement():
                 self.visit(stmt)
-        elif ctx.ELSE():
+        elif ctx.ELSE() and not condition_result:
             # Execute else block statements if they exist
+            print("else gets exec")
             else_block = ctx.statement()[len(ctx.statement())//2:]  # Second half of statements are in else block
             for stmt in else_block:
                 self.visit(stmt)
@@ -319,21 +324,26 @@ class TimelineInterpreter(TimelineParserVisitor):
             try:
                 if prop in ['date', 'start', 'end']:
                     # For date properties, we need to handle both dictionary and string formats
-                    if isinstance(value, dict):
-                        # If it's already a dictionary (from dateExpr), use it directly
-                        date_dict = value
-                    else:
-                        # If it's a string (from a previous modification), parse it back to a dictionary
-                        date_dict = self.parse_date_string(value)
+                    # if isinstance(value, dict):
+                    # If it's already a dictionary (from dateExpr), use it directly
+                    date_dict = value
+                    # else:
+                    #     # If it's a string (from a previous modification), parse it back to a dictionary
+                    #     date_dict = self.parse_date_string(value)
                     
                     # Create a new Date object with the dictionary
-                    if isinstance(component, (Event, Period)):
+                    if isinstance(component, Event):
                         if prop == 'date':
                             component.date = Date(date_dict)
-                        elif prop == 'start':
+                        else:
+                            self.validation_errors.append("No such property for component of type Event")
+                    if isinstance(component, Period):
+                        if prop == 'start':
                             component.start = Date(date_dict)
                         elif prop == 'end':
                             component.end = Date(date_dict)
+                        else:
+                            self.validation_errors.append("No such property for component of type Period")
                 else:
                     # For non-date properties, set them directly
                     if hasattr(component, prop):
