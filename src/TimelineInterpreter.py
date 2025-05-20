@@ -1,17 +1,17 @@
 from src.TimelineParser import TimelineParser
 from src.TimelineParserVisitor import TimelineParserVisitor
-from src.models import Event, Period, Timeline, Relationship
+from src.models import Event, Period, Timeline, Relationship, Date
 
-# def apply_comparison(left, right, op):
-#     ops = {
-#         "==": lambda a, b: a == b,
-#         "!=": lambda a, b: a != b,
-#         "<": lambda a, b: a < b,
-#         ">": lambda a, b: a > b,
-#         "<=": lambda a, b: a <= b,
-#         ">=": lambda a, b: a >= b
-#     }
-#     return ops.get(op, lambda a, b: False)(left, right)
+def apply_comparison(left, right, op):
+    ops = {
+        "==": lambda a, b: a == b,
+        "!=": lambda a, b: a != b,
+        "<": lambda a, b: a < b,
+        ">": lambda a, b: a > b,
+        "<=": lambda a, b: a <= b,
+        ">=": lambda a, b: a >= b
+    }
+    return ops.get(op, lambda a, b: False)(left, right)
 
 
 class TimelineInterpreter(TimelineParserVisitor):
@@ -22,6 +22,36 @@ class TimelineInterpreter(TimelineParserVisitor):
         self.relationships = {}
         self.already_exported = set()
         self.validation_errors = []
+
+    def format_date(self, date_dict):
+        """Convert a date dictionary to a formatted string."""
+        if not isinstance(date_dict, dict):
+            return date_dict
+        
+        if 'year' in date_dict:
+            year = date_dict['year']
+            if 'month' in date_dict and 'day' in date_dict:
+                return f"{date_dict['day']}-{date_dict['month']}-{year}"
+            elif 'month' in date_dict:
+                return f"{date_dict['month']}-{year}"
+            return str(year)
+        return None
+
+    def parse_date_string(self, date_str):
+        """Convert a date string back to a dictionary format."""
+        if not isinstance(date_str, str):
+            return date_str
+            
+        parts = date_str.split('-')
+        if len(parts) == 3:  # day-month-year
+            return {"year": int(parts[2]), "month": int(parts[1]), "day": int(parts[0])}
+        elif len(parts) == 2:  # month-year
+            return {"year": int(parts[1]), "month": int(parts[0])}
+        else:  # year only
+            try:
+                return {"year": int(date_str)}
+            except ValueError:
+                return date_str
 
     def visitYearLiteral(self, ctx: TimelineParser.YearLiteralContext):
         year = int(ctx.INT().getText())
@@ -172,47 +202,145 @@ class TimelineInterpreter(TimelineParserVisitor):
             
         return None
 
+    def visitIfStmt(self, ctx: TimelineParser.IfStmtContext):
+        condition_result = self.visitCondition(ctx.condition())
+        
+        if condition_result:
+            # Execute if block statements
+            for stmt in ctx.statement():
+                self.visit(stmt)
+        elif ctx.ELSE():
+            # Execute else block statements if they exist
+            else_block = ctx.statement()[len(ctx.statement())//2:]  # Second half of statements are in else block
+            for stmt in else_block:
+                self.visit(stmt)
+        return None
 
-    # def visitIfStmt(self, ctx: TimelineParser.IfStmtContext):
-    #     result = self.evaluate_condition(ctx.condition())
-    #
-    #     if result:
-    #         for stmt in ctx.statement():
-    #             self.visit(stmt)
-    #     elif ctx.ELSE():
-    #         else_block = ctx.getChild(6)  # The ELSE block is always the 7th child
-    #         for stmt in else_block.statement():
-    #             self.visit(stmt)
-    #     return None
-    #
-    # def evaluate_condition(self, ctx):
-    #     # Case: expr OP expr
-    #     if ctx.comparisonOp():
-    #         left = self.evaluate_expr(ctx.expr(0))
-    #         right = self.evaluate_expr(ctx.expr(1))
-    #         op = ctx.comparisonOp().getText()
-    #         return apply_comparison(left, right, op)
-    #     elif ctx.ID():
-    #         comp_id = ctx.ID().getText()
-    #         return comp_id in self.events or comp_id in self.periods
-    #     elif ctx.booleanLiteral():
-    #         return ctx.booleanLiteral().getText().lower() == "true"
-    #     return False
-    #
-    # def evaluate_expr(self, ctx):
-    #     if ctx.ID() and ctx.property_():
-    #         obj_id = ctx.ID().getText()
-    #         prop = ctx.property_().getText().lower()
-    #
-    #         component = self.events.get(obj_id) or self.periods.get(obj_id)
-    #         if component:
-    #             return getattr(component, prop, None)
-    #
-    #     elif ctx.STRING():
-    #         return ctx.STRING().getText().strip('"')
-    #     elif ctx.INT():
-    #         return int(ctx.INT().getText())
-    #     elif ctx.importanceValue():
-    #         return ctx.importanceValue().getText().upper()
-    #     return None
-    #
+    def visitCondition(self, ctx: TimelineParser.ConditionContext):
+        if ctx.comparisonOp():
+            left = self.visitExpr(ctx.expr(0))
+            right = self.visitExpr(ctx.expr(1))
+            op = ctx.comparisonOp().getText()
+            return apply_comparison(left, right, op)
+        elif ctx.ID():
+            comp_id = ctx.ID().getText()
+            return comp_id in self.events or comp_id in self.periods or comp_id in self.timelines
+        elif ctx.booleanLiteral():
+            return ctx.booleanLiteral().getText().lower() == "true"
+        return False
+
+    def visitExpr(self, ctx: TimelineParser.ExprContext):
+        if ctx.ID() and ctx.property_():
+            obj_id = ctx.ID().getText()
+            prop = ctx.property_().getText().lower()
+            
+            component = (self.events.get(obj_id) or 
+                       self.periods.get(obj_id) or 
+                       self.relationships.get(obj_id) or 
+                       self.timelines.get(obj_id))
+            
+            # Check if the component exists and handle loop variables
+            if not component and hasattr(self, '_loop_vars') and obj_id in self._loop_vars:
+                component = self._loop_vars[obj_id]
+            
+            if component:
+                if hasattr(component, prop):
+                    return getattr(component, prop)
+                elif isinstance(component, dict) and prop in component:
+                    return component[prop]
+            return None
+        elif ctx.STRING():
+            return ctx.STRING().getText().strip('"')
+        elif ctx.INT():
+            return int(ctx.INT().getText())
+        elif ctx.dateExpr():
+            return self.visitDateExpr(ctx.dateExpr())
+        elif ctx.importanceValue():
+            return ctx.importanceValue().getText().upper()
+        elif ctx.ID():
+            # First check if it's a loop variable
+            if hasattr(self, '_loop_vars') and ctx.ID().getText() in self._loop_vars:
+                return self._loop_vars[ctx.ID().getText()]
+            return ctx.ID().getText()
+        return None
+
+    def visitForStmt(self, ctx: TimelineParser.ForStmtContext):
+        # Get the iterator variable and collection
+        iter_var = ctx.ID(0).getText()
+        collection_id = ctx.ID(1).getText()
+        
+        # Find the collection to iterate over
+        collection = None
+        if collection_id in self.timelines:
+            timeline = self.timelines[collection_id]
+            collection = timeline.components if hasattr(timeline, 'components') else []
+        elif collection_id in self.events:
+            collection = [self.events[collection_id]]
+        elif collection_id in self.periods:
+            collection = [self.periods[collection_id]]
+        else:
+            self.validation_errors.append(f"Cannot iterate over unknown collection '{collection_id}'")
+            return None
+            
+        # Execute the for loop body for each item
+        for item in collection:
+            # Store the current item in a way accessible to other visitors
+            if not hasattr(self, '_loop_vars'):
+                self._loop_vars = {}
+            self._loop_vars[iter_var] = item
+            
+            # Execute all statements in the loop body
+            for stmt in ctx.statement():
+                self.visit(stmt)
+                
+        # Clean up the loop variable
+        if hasattr(self, '_loop_vars') and iter_var in self._loop_vars:
+            del self._loop_vars[iter_var]
+            
+        return None
+
+    def visitModifyStmt(self, ctx: TimelineParser.ModifyStmtContext):
+        # Get the component to modify
+        component_id = ctx.ID().getText()
+        component = (self.events.get(component_id) or 
+                   self.periods.get(component_id) or 
+                   self.relationships.get(component_id) or 
+                   self.timelines.get(component_id))
+        
+        if not component:
+            self.validation_errors.append(f"Cannot modify unknown component '{component_id}'")
+            return None
+            
+        # Process each property assignment
+        for assignment in ctx.propertyAssignment():
+            prop = assignment.property_().getText().lower()
+            value = self.visitExpr(assignment.expr())
+            
+            try:
+                if prop in ['date', 'start', 'end']:
+                    # For date properties, we need to handle both dictionary and string formats
+                    if isinstance(value, dict):
+                        # If it's already a dictionary (from dateExpr), use it directly
+                        date_dict = value
+                    else:
+                        # If it's a string (from a previous modification), parse it back to a dictionary
+                        date_dict = self.parse_date_string(value)
+                    
+                    # Create a new Date object with the dictionary
+                    if isinstance(component, (Event, Period)):
+                        if prop == 'date':
+                            component.date = Date(date_dict)
+                        elif prop == 'start':
+                            component.start = Date(date_dict)
+                        elif prop == 'end':
+                            component.end = Date(date_dict)
+                else:
+                    # For non-date properties, set them directly
+                    if hasattr(component, prop):
+                        setattr(component, prop, value)
+                    elif isinstance(component, dict):
+                        component[prop] = value
+            except (AttributeError, ValueError) as e:
+                self.validation_errors.append(f"Error modifying {component_id}.{prop}: {str(e)}")
+                
+        return None
