@@ -1,0 +1,38 @@
+event E1 {
+    title = "Founding of City";
+    date = 100;
+    importance = high;
+};
+
+event E2 {
+    title = "First Council";
+    date = 300;
+    importance = medium;
+};
+
+period P1 {
+    title = "Early Growth";
+    start = 50;
+    end = 350;
+    importance = low;
+};
+
+timeline cityHistory {
+    title = "City History";
+    E1, E2, P1;
+};
+
+main {
+    for item in cityHistory {
+        if (item.date > 80) {
+            modify item {
+                importance = low;
+            };
+        } else {
+            modify item {
+                importance = medium;
+            };
+        };
+    };
+    export cityHistory;
+};

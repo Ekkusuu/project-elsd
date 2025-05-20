@@ -1,0 +1,248 @@
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+}
+
+.container {
+    display: flex;
+    height: 95vh;
+    margin: 0;
+    padding: 20px;
+    padding-top: 5px;
+    box-sizing: border-box;
+    gap: 20px;
+}
+
+.editor-section, .visualization-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 12px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.editor-wrapper {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 120px);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#code-editor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    font-size: 14px;
+}
+
+.button-visualize {
+    font-family: monospace;
+}
+
+/* Component selector styles */
+.component-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.component-button, .tab-button {
+    padding: 6px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #666;
+    transition: all 0.2s ease;
+    font-family: monospace;
+}
+
+.component-button:hover, .tab-button:hover {
+    border-color: #007bff;
+    color: #007bff;
+    background: #f8f9fa;
+}
+
+.component-button.active, .tab-button.active {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.component-type {
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+
+.component-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.component-id {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Visualization content styles */
+.visualization-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Tabs styles */
+.tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 0 16px;
+    gap: 8px;
+}
+
+.tab-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tab-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.download-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.download-buttons button {
+    background-color: #28a745;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+.download-buttons button:hover {
+    background-color: #218838;
+}
+
+.download-buttons button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Copy buttons specific styles */
+.download-buttons button[id^="copy-"] {
+    background-color: #6c757d;
+}
+
+.download-buttons button[id^="copy-"]:hover {
+    background-color: #5a6268;
+}
+
+.tab-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    background: #fff;
+}
+
+.tab-pane {
+    display: none;
+    flex: 1;
+    overflow: auto;
+}
+
+.tab-pane.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Download button styles */
+#download-json, #download-png {
+    background-color: #28a745;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: monospace;
+}
+
+#download-json:hover, #download-png:hover {
+    background-color: #218838;
+}
+
+/* JSON view styles */
+.json-view {
+    padding: 15px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    overflow: auto;
+    flex: 1;
+    background: #fff;
+}
+
+.json-view .key { color: #d63384; }
+.json-view .string { color: #198754; }
+.json-view .number { color: #0d6efd; }
+.json-view .boolean { color: #dc3545; }
+.json-view .null { color: #6c757d; }
+
+/* Image styles */
+#timeline-image {
+    max-width: 100%;
+    height: auto;
+    margin: 15px;
+}
+
+/* Button styles */
+button {
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+/* Error message styles */
+.error {
+    padding: 15px;
+    margin-top: 40px;
+    margin-bottom: 15px;
+    border: 1px solid #dc3545;
+    border-radius: 4px;
+    color: #dc3545;
+    background: #f8d7da;
+} 

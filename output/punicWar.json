@@ -1,0 +1,149 @@
+{
+  "id": "punicWar",
+  "title": "First Punic War",
+  "components": [
+    {
+      "id": "E1",
+      "title": "First Punic War Begins",
+      "importance": "LOW",
+      "date": {
+        "year": -265,
+        "month": 12,
+        "day": null
+      }
+    },
+    {
+      "id": "E2",
+      "title": "Battle of Agrigentum",
+      "importance": "HIGH",
+      "date": {
+        "year": -262,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "E3",
+      "title": "Battle of Mylae",
+      "importance": "MEDIUM",
+      "date": {
+        "year": -260,
+        "month": 12,
+        "day": 12
+      }
+    },
+    {
+      "id": "E33",
+      "title": "Battle of Spylae",
+      "importance": "HIGH",
+      "date": {
+        "year": -259,
+        "month": 1,
+        "day": 1
+      }
+    },
+    {
+      "id": "E4",
+      "title": "End of First Punic War",
+      "importance": "HIGH",
+      "date": {
+        "year": -241,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "P1",
+      "title": "Roman Naval Dominance",
+      "importance": "MEDIUM",
+      "start": {
+        "year": -260,
+        "month": null,
+        "day": null
+      },
+      "end": {
+        "year": -241,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "P2",
+      "title": "Siege of Agrigentum",
+      "importance": "HIGH",
+      "start": {
+        "year": -262,
+        "month": null,
+        "day": null
+      },
+      "end": {
+        "year": -261,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "P3",
+      "title": "TEST",
+      "importance": "HIGH",
+      "start": {
+        "year": -250,
+        "month": null,
+        "day": null
+      },
+      "end": {
+        "year": -246,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "P4",
+      "title": "TEST1",
+      "importance": "LOW",
+      "start": {
+        "year": -249,
+        "month": null,
+        "day": null
+      },
+      "end": {
+        "year": -246,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "P5",
+      "title": "TEST2",
+      "importance": "MEDIUM",
+      "start": {
+        "year": -255,
+        "month": null,
+        "day": null
+      },
+      "end": {
+        "year": -242,
+        "month": null,
+        "day": null
+      }
+    },
+    {
+      "id": "R1",
+      "from": "E1",
+      "to": "E2",
+      "type": "CAUSE_EFFECT"
+    },
+    {
+      "id": "R2",
+      "from": "E3",
+      "to": "P3",
+      "type": "PRECEDES"
+    },
+    {
+      "id": "R7",
+      "from": "P1",
+      "to": "P3",
+      "type": "INCLUDES"
+    }
+  ]
+}
