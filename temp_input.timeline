@@ -1,19 +1,19 @@
 event E1 {
     title = "Founding of City";
-    date = 500;
+    date = 100;
     importance = high;
 };
 
 event E2 {
     title = "First Council";
-    date = 480;
+    date = 300;
     importance = medium;
 };
 
 period P1 {
     title = "Early Growth";
-    start = 500;
-    end = 650;
+    start = 50;
+    end = 350;
     importance = low;
 };
 
@@ -24,7 +24,7 @@ timeline cityHistory {
 
 main {
     for item in cityHistory {
-        if (item.importance == HIGH) {
+        if (item.date > 80) {
             modify item {
                 importance = low;
             };

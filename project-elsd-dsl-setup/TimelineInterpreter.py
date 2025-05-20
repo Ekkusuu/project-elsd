@@ -1063,11 +1063,15 @@ class TimelineInterpreter(TimelineParserListener):
         return None
 
     def apply_comparison(self, left, right, op):
+        # if either side is missing, treat comparison as false
+        if left is None or right is None:
+            return False
+
         ops = {
             "==": lambda a, b: a == b,
             "!=": lambda a, b: a != b,
-            "<": lambda a, b: a < b,
-            ">": lambda a, b: a > b,
+            "<":  lambda a, b: a < b,
+            ">":  lambda a, b: a > b,
             "<=": lambda a, b: a <= b,
             ">=": lambda a, b: a >= b
         }
