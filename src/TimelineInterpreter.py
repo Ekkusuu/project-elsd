@@ -4,6 +4,19 @@ from src.models import Event, Period, Timeline, Relationship, Date
 
 
 def apply_comparison(left, right, op):
+    if left is None or right is None:
+        return False
+
+    if isinstance(left, dict) and 'year' in left:
+        left = Date(left)
+    if isinstance(right, dict) and 'year' in right:
+        right = Date(right)
+
+    if isinstance(left, int) and isinstance(right, Date):
+        left = Date({"year": left})
+    if isinstance(right, int) and isinstance(left, Date):
+        right = Date({"year": right})
+
     ops = {
         "==": lambda a, b: a == b,
         "!=": lambda a, b: a != b,
@@ -12,7 +25,11 @@ def apply_comparison(left, right, op):
         "<=": lambda a, b: a <= b,
         ">=": lambda a, b: a >= b
     }
-    return ops.get(op, lambda a, b: False)(left, right)
+    try:
+        return ops.get(op, lambda a, b: False)(left, right)
+    except TypeError as e:
+        print(f"Comparison error: Cannot compare {type(left)} with {type(right)}")
+        return False
 
 
 class TimelineInterpreter(TimelineParserVisitor):
@@ -227,6 +244,13 @@ class TimelineInterpreter(TimelineParserVisitor):
             left = self.visitExpr(ctx.expr(0))
             right = self.visitExpr(ctx.expr(1))
             op = ctx.comparisonOp().getText()
+
+            # Handle date comparisons
+            if isinstance(left, dict) and 'year' in left:
+                left = Date(left)
+            if isinstance(right, dict) and 'year' in right:
+                right = Date(right)
+
             return apply_comparison(left, right, op)
         elif ctx.ID():
             comp_id = ctx.ID().getText()
@@ -251,7 +275,11 @@ class TimelineInterpreter(TimelineParserVisitor):
             
             if component:
                 if hasattr(component, prop):
-                    return getattr(component, prop)
+                    value = getattr(component, prop)
+                    # If it's a Date object, convert to dict for consistency
+                    if isinstance(value, Date):
+                        return {"year": value.year, "month": value.month, "day": value.day}
+                    return value
                 elif isinstance(component, dict) and prop in component:
                     return component[prop]
             return None
