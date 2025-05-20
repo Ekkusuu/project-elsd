@@ -2,6 +2,7 @@ from src.TimelineParser import TimelineParser
 from src.TimelineParserVisitor import TimelineParserVisitor
 from src.models import Event, Period, Timeline, Relationship, Date
 
+
 def apply_comparison(left, right, op):
     ops = {
         "==": lambda a, b: a == b,
@@ -352,5 +353,26 @@ class TimelineInterpreter(TimelineParserVisitor):
                         component[prop] = value
             except (AttributeError, ValueError) as e:
                 self.validation_errors.append(f"Error modifying {component_id}.{prop}: {str(e)}")
+        
+        # Validate the component after all modifications
+        try:
+            if isinstance(component, Period):
+                # Validate that start date is before end date
+                if component.start >= component.end:
+                    self.validation_errors.append(f"Invalid period {component_id}: start date ({component.start}) must be before end date ({component.end})")
+            elif isinstance(component, Event):
+                # Validate the date is properly set
+                if not component.date:
+                    self.validation_errors.append(f"Invalid event {component_id}: date is not set")
+            elif isinstance(component, Timeline):
+                # Validate timeline components
+                if hasattr(component, 'validate_components'):
+                    component.validate_components()
+            elif isinstance(component, Relationship):
+                # Validate relationship components exist and are properly linked
+                if not component.from_component or not component.to_component:
+                    self.validation_errors.append(f"Invalid relationship {component_id}: missing from/to components")
+        except Exception as e:
+            self.validation_errors.append(f"Validation error in {component_id}: {str(e)}")
                 
         return None
