@@ -336,10 +336,17 @@ class TimelineInterpreter(TimelineParserVisitor):
     def visitModifyStmt(self, ctx: TimelineParser.ModifyStmtContext):
         # Get the component to modify
         component_id = ctx.ID().getText()
-        component = (self.events.get(component_id) or 
-                   self.periods.get(component_id) or 
-                   self.relationships.get(component_id) or 
-                   self.timelines.get(component_id))
+        
+        # First check if it's a loop variable
+        component = None
+        if hasattr(self, '_loop_vars') and component_id in self._loop_vars:
+            component = self._loop_vars[component_id]
+        else:
+            # If not a loop variable, check regular components
+            component = (self.events.get(component_id) or 
+                       self.periods.get(component_id) or 
+                       self.relationships.get(component_id) or 
+                       self.timelines.get(component_id))
         
         if not component:
             self.validation_errors.append(f"Cannot modify unknown component '{component_id}'")
