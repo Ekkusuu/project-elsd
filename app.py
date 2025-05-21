@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')
+import webbrowser
 
 app = Flask(__name__)
 
@@ -118,4 +119,6 @@ def visualize():
         })
 
 if __name__ == '__main__':
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        webbrowser.open('http://127.0.0.1:5000/')
     app.run(debug=True)
