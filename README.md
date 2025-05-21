@@ -79,6 +79,14 @@ The visualization includes:
 - Color-coding based on importance levels
 - Relationship indicators between elements
 
+### Interface
+![Web Interface](./output/interface.png)
+
+The interface offers:
+- A code editor (using Ace)
+- Syntax highlighting
+- Copy to clipboard and download functionality 
+
 ## Syntax Reference
 
 ### Date Formats
