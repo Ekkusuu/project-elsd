@@ -71,7 +71,7 @@ main {
 
 ### Example Output
 
-![Timeline Visualization](./output/punicWar.png)
+![Timeline Visualization](./output/spaceRace.png)
 
 The visualization includes:
 - Events marked as points on the timeline
