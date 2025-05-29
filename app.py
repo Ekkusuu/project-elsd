@@ -15,6 +15,7 @@ import webbrowser
 
 app = Flask(__name__)
 
+
 # Custom error listener to capture parser errors
 class TimelineErrorListener(ErrorListener):
     def __init__(self):
@@ -90,14 +91,16 @@ def visualize():
 
         # Run the interpreter
         interpreter = TimelineInterpreter()
-        result = interpreter.visit(tree)
-
-        # Check for validation errors
-        if interpreter.validation_errors:
+        try:
+            result = interpreter.visit(tree)
+        except ValidationError as e:
+            # Return the validation error with line and column information
+            print(f"Validation error at line {e.line}, column {e.column}: {str(e)}")
             return jsonify({
                 'success': False,
-                'error': 'Validation Errors:',
-                'validation_errors': interpreter.validation_errors
+                'error': 'Validation Error:',
+                'validation_errors': interpreter.validation_errors,
+                'error_type': 'validation_error'
             })
 
         # Check if any exports were made
