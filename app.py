@@ -160,12 +160,17 @@ def visualize():
         })
         
     except Exception as e:
+        error_details = {
+            'message': str(e),
+            'traceback': traceback.format_exc() if app.debug else None
+        }
         if app.debug:
-            print(f"Error in visualization: {str(e)}")
-            print(traceback.format_exc())
+            print(error_details)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred',
+            'error_details': error_details,
+            'error_type': 'runtime_error'
         })
 
 
