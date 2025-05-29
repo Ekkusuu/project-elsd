@@ -545,12 +545,15 @@ class Timeline:
 
         # Assign colors to ensure maximum difference between consecutive items
         for importance, components in importance_groups.items():
+            if not components:  # Skip if no components of this importance
+                continue
+                
             color_list = color_sets[importance]
             n_colors = len(color_list)
             n_components = len(components)
             
             # Calculate step size to spread colors evenly
-            step = max(1, n_colors // n_components)
+            step = max(1, n_colors // max(1, n_components))
             
             for i, comp in enumerate(components):
                 # Use modulo to wrap around the color list
