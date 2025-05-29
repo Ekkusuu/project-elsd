@@ -1,3 +1,5 @@
+import traceback
+
 from flask import Flask, render_template, request, jsonify
 from antlr4 import *
 from src.TimelineLexer import TimelineLexer
@@ -112,13 +114,16 @@ def visualize():
         })
         
     except Exception as e:
-        print(f"Error in visualization: {str(e)}")
+        if app.debug:
+            print(f"Error in visualization: {str(e)}")
+            print(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': str(e)
         })
 
+
 if __name__ == '__main__':
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        webbrowser.open('http://127.0.0.1:5000/')
+    # if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    #     webbrowser.open('http://127.0.0.1:5000/')
     app.run(debug=True)
