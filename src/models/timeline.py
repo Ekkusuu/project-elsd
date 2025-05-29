@@ -503,11 +503,15 @@ class Timeline:
         # Generate and add tick marks with the extended range
         ticks = self._generate_ticks(extended_min_date, extended_max_date, interval_type)
         
+        # Calculate tick height as percentage of axis length
+        axis_length = xlim_max - xlim_min
+        tick_height = axis_length * 0.006  # 0.6% of axis length
+        
         # Add tick marks and labels
         for pos, label in ticks:
             if xlim_min <= pos <= xlim_max:
                 # Draw tick mark
-                ax.plot([pos, pos], [-0.1, 0.1], color='black', linewidth=1, zorder=1)
+                ax.plot([pos, pos], [-tick_height, tick_height], color='black', linewidth=1, zorder=1)
                 
                 # Add label
                 ax.annotate(label, 
