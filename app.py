@@ -42,10 +42,37 @@ def visualize():
         # Process the timeline code directly from memory
         input_stream = InputStream(timeline_code)
         lexer = TimelineLexer(input_stream)
+        lexer_error_listener = TimelineErrorListener()
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(lexer_error_listener)
         tokens = CommonTokenStream(lexer)
         parser = TimelineParser(tokens)
+        parser_error_listener = TimelineErrorListener()
+        parser.removeErrorListeners()
+        parser.addErrorListener(parser_error_listener)
+
+        # Check for lexer errors first
+        if lexer_error_listener.errors:
+            return jsonify({
+                'success': False,
+                'error': 'Lexical Errors:',
+                'parser_errors': lexer_error_listener.errors,
+                'error_type': 'lexer_error'
+            })
+
+        # Parse the input
         tree = parser.program()
 
+        # Check for parser errors
+        if parser_error_listener.errors:
+            return jsonify({
+                'success': False,
+                'error': 'Syntax Errors:',
+                'parser_errors': parser_error_listener.errors,
+                'error_type': 'parser_error'
+            })
+
+        # Run the interpreter
         interpreter = TimelineInterpreter()
         result = interpreter.visit(tree)
 
