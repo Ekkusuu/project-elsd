@@ -24,9 +24,43 @@ function setupEditor() {
     editor.session.setMode("ace/mode/timeline");
 }
 
-function showError(message) {
+function showError(message, errors = null, errorType = null) {
     const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
+    let errorHtml = '';
+
+    if (errorType === 'lexer_error' || errorType === 'parser_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.length > 0) {
+            errorHtml += '<ul>';
+            errors.forEach(error => {
+                errorHtml += `<li>Line ${error.line}, Column ${error.column}: ${error.message}</li>`;
+            });
+            errorHtml += '</ul>';
+        }
+    } else if (errorType === 'validation_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.length > 0) {
+            errorHtml += '<ul>';
+            errors.forEach(error => {
+                const location = error.line ? ` at line ${error.line}${error.column ? `, column ${error.column}` : ''}` : '';
+                errorHtml += `<li>${error.message}${location}</li>`;
+            });
+            errorHtml += '</ul>';
+        }
+    } else if (errorType === 'runtime_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.message) {
+            errorHtml += `<p>${errors.message}</p>`;
+            if (errors.traceback) {
+                errorHtml += `<pre class="error-traceback">${errors.traceback}</pre>`;
+            }
+        }
+    } else {
+        // For other error types (like export_missing)
+        errorHtml = `<p>${message}</p>`;
+    }
+
+    errorDiv.innerHTML = errorHtml;
     errorDiv.style.display = 'block';
     
     // Hide visualization elements
