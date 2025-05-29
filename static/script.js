@@ -258,11 +258,10 @@ function showCopyFeedback(buttonId) {
 }
 
 async function visualize() {
-    clearError();
-    
-    const code = editor.getValue();
-    
     try {
+        clearError();
+        const code = editor.getValue();
+        
         const response = await fetch('/visualize', {
             method: 'POST',
             headers: {
@@ -274,14 +273,24 @@ async function visualize() {
         const data = await response.json();
         
         if (!data.success) {
-            showError(data.error || 'An error occurred during visualization');
+            if (data.error_type === 'lexer_error' || data.error_type === 'parser_error') {
+                showError(data.error, data.parser_errors, data.error_type);
+            } else if (data.error_type === 'validation_error') {
+                showError(data.error, data.validation_errors, data.error_type);
+            } else if (data.error_type === 'runtime_error') {
+                showError(data.error, data.error_details, data.error_type);
+            } else {
+                showError(data.error, null, data.error_type);
+            }
             return;
         }
-        
+
+        clearError();
+
         createComponentSelector(data.components);
         
     } catch (error) {
-        showError('An error occurred while communicating with the server');
+        showError('Failed to communicate with the server. Please try again.', null, 'network_error');
     }
 }
 
