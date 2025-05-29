@@ -2,9 +2,10 @@ import traceback
 
 from flask import Flask, render_template, request, jsonify
 from antlr4 import *
+from antlr4.error.ErrorListener import ErrorListener
 from src.TimelineLexer import TimelineLexer
 from src.TimelineParser import TimelineParser
-from src.TimelineInterpreter import TimelineInterpreter
+from src.TimelineInterpreter import TimelineInterpreter, ValidationError
 import os
 import base64
 from io import BytesIO
@@ -13,6 +14,21 @@ matplotlib.use('Agg')
 import webbrowser
 
 app = Flask(__name__)
+
+# Custom error listener to capture parser errors
+class TimelineErrorListener(ErrorListener):
+    def __init__(self):
+        self.errors = []
+
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        error = {
+            'line': line,
+            'column': column,
+            'message': msg,
+            'symbol': offendingSymbol.text if offendingSymbol else None
+        }
+        self.errors.append(error)
+
 
 @app.route('/')
 def index():
