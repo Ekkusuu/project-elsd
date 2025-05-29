@@ -503,11 +503,15 @@ class Timeline:
         # Generate and add tick marks with the extended range
         ticks = self._generate_ticks(extended_min_date, extended_max_date, interval_type)
         
+        # Calculate tick height as percentage of axis length
+        axis_length = xlim_max - xlim_min
+        tick_height = axis_length * 0.006  # 0.6% of axis length
+        
         # Add tick marks and labels
         for pos, label in ticks:
             if xlim_min <= pos <= xlim_max:
                 # Draw tick mark
-                ax.plot([pos, pos], [-0.1, 0.1], color='black', linewidth=1, zorder=1)
+                ax.plot([pos, pos], [-tick_height, tick_height], color='black', linewidth=1, zorder=1)
                 
                 # Add label
                 ax.annotate(label, 
@@ -545,12 +549,15 @@ class Timeline:
 
         # Assign colors to ensure maximum difference between consecutive items
         for importance, components in importance_groups.items():
+            if not components:  # Skip if no components of this importance
+                continue
+                
             color_list = color_sets[importance]
             n_colors = len(color_list)
             n_components = len(components)
             
             # Calculate step size to spread colors evenly
-            step = max(1, n_colors // n_components)
+            step = max(1, n_colors // max(1, n_components))
             
             for i, comp in enumerate(components):
                 # Use modulo to wrap around the color list
