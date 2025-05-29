@@ -63,4 +63,5 @@ NEQ: '!=';
 INT: [0-9]+;
 STRING: '"' (~["\\])* '"';
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
+COMMENT: '//' ~[\r\n]* -> skip;
 WS: [ \t\n\r]+ -> skip;
