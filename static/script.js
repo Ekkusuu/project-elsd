@@ -24,9 +24,43 @@ function setupEditor() {
     editor.session.setMode("ace/mode/timeline");
 }
 
-function showError(message) {
+function showError(message, errors = null, errorType = null) {
     const errorDiv = document.getElementById('error-message');
-    errorDiv.textContent = message;
+    let errorHtml = '';
+
+    if (errorType === 'lexer_error' || errorType === 'parser_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.length > 0) {
+            errorHtml += '<ul>';
+            errors.forEach(error => {
+                errorHtml += `<li>Line ${error.line}, Column ${error.column}: ${error.message}</li>`;
+            });
+            errorHtml += '</ul>';
+        }
+    } else if (errorType === 'validation_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.length > 0) {
+            errorHtml += '<ul>';
+            errors.forEach(error => {
+                const location = error.line ? ` at line ${error.line}${error.column ? `, column ${error.column}` : ''}` : '';
+                errorHtml += `<li>${error.message}${location}</li>`;
+            });
+            errorHtml += '</ul>';
+        }
+    } else if (errorType === 'runtime_error') {
+        errorHtml = `<h3>${message}</h3>`;
+        if (errors && errors.message) {
+            errorHtml += `<p>${errors.message}</p>`;
+            if (errors.traceback) {
+                errorHtml += `<pre class="error-traceback">${errors.traceback}</pre>`;
+            }
+        }
+    } else {
+        // For other error types (like export_missing)
+        errorHtml = `<p>${message}</p>`;
+    }
+
+    errorDiv.innerHTML = errorHtml;
     errorDiv.style.display = 'block';
     
     // Hide visualization elements
@@ -224,11 +258,10 @@ function showCopyFeedback(buttonId) {
 }
 
 async function visualize() {
-    clearError();
-    
-    const code = editor.getValue();
-    
     try {
+        clearError();
+        const code = editor.getValue();
+        
         const response = await fetch('/visualize', {
             method: 'POST',
             headers: {
@@ -240,14 +273,24 @@ async function visualize() {
         const data = await response.json();
         
         if (!data.success) {
-            showError(data.error || 'An error occurred during visualization');
+            if (data.error_type === 'lexer_error' || data.error_type === 'parser_error') {
+                showError(data.error, data.parser_errors, data.error_type);
+            } else if (data.error_type === 'validation_error') {
+                showError(data.error, data.validation_errors, data.error_type);
+            } else if (data.error_type === 'runtime_error') {
+                showError(data.error, data.error_details, data.error_type);
+            } else {
+                showError(data.error, null, data.error_type);
+            }
             return;
         }
-        
+
+        clearError();
+
         createComponentSelector(data.components);
         
     } catch (error) {
-        showError('An error occurred while communicating with the server');
+        showError('Failed to communicate with the server. Please try again.', null, 'network_error');
     }
 }
 

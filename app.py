@@ -2,9 +2,10 @@ import traceback
 
 from flask import Flask, render_template, request, jsonify
 from antlr4 import *
+from antlr4.error.ErrorListener import ErrorListener
 from src.TimelineLexer import TimelineLexer
 from src.TimelineParser import TimelineParser
-from src.TimelineInterpreter import TimelineInterpreter
+from src.TimelineInterpreter import TimelineInterpreter, ValidationError
 import os
 import base64
 from io import BytesIO
@@ -13,6 +14,22 @@ matplotlib.use('Agg')
 import webbrowser
 
 app = Flask(__name__)
+
+
+# Custom error listener to capture parser errors
+class TimelineErrorListener(ErrorListener):
+    def __init__(self):
+        self.errors = []
+
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        error = {
+            'line': line,
+            'column': column,
+            'message': msg,
+            'symbol': offendingSymbol.text if offendingSymbol else None
+        }
+        self.errors.append(error)
+
 
 @app.route('/')
 def index():
@@ -42,19 +59,48 @@ def visualize():
         # Process the timeline code directly from memory
         input_stream = InputStream(timeline_code)
         lexer = TimelineLexer(input_stream)
+        lexer_error_listener = TimelineErrorListener()
+        lexer.removeErrorListeners()
+        lexer.addErrorListener(lexer_error_listener)
         tokens = CommonTokenStream(lexer)
         parser = TimelineParser(tokens)
-        tree = parser.program()
+        parser_error_listener = TimelineErrorListener()
+        parser.removeErrorListeners()
+        parser.addErrorListener(parser_error_listener)
 
-        interpreter = TimelineInterpreter()
-        result = interpreter.visit(tree)
-
-        # Check for validation errors
-        if interpreter.validation_errors:
+        # Check for lexer errors first
+        if lexer_error_listener.errors:
             return jsonify({
                 'success': False,
-                'error': 'Validation Errors:',
-                'validation_errors': interpreter.validation_errors
+                'error': 'Lexical Errors:',
+                'parser_errors': lexer_error_listener.errors,
+                'error_type': 'lexer_error'
+            })
+
+        # Parse the input
+        tree = parser.program()
+
+        # Check for parser errors
+        if parser_error_listener.errors:
+            return jsonify({
+                'success': False,
+                'error': 'Syntax Errors:',
+                'parser_errors': parser_error_listener.errors,
+                'error_type': 'parser_error'
+            })
+
+        # Run the interpreter
+        interpreter = TimelineInterpreter()
+        try:
+            result = interpreter.visit(tree)
+        except ValidationError as e:
+            # Return the validation error with line and column information
+            print(f"Validation error at line {e.line}, column {e.column}: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Validation Error:',
+                'validation_errors': interpreter.validation_errors,
+                'error_type': 'validation_error'
             })
 
         # Check if any exports were made
@@ -114,12 +160,17 @@ def visualize():
         })
         
     except Exception as e:
+        error_details = {
+            'message': str(e),
+            'traceback': traceback.format_exc() if app.debug else None
+        }
         if app.debug:
-            print(f"Error in visualization: {str(e)}")
-            print(traceback.format_exc())
+            print(error_details)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'An unexpected error occurred',
+            'error_details': error_details,
+            'error_type': 'runtime_error'
         })
 
 

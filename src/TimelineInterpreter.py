@@ -32,6 +32,14 @@ def apply_comparison(left, right, op):
         return False
 
 
+class ValidationError(Exception):
+    """Custom exception for validation errors"""
+    def __init__(self, message, line=None, column=None):
+        super().__init__(message)
+        self.line = line
+        self.column = column
+
+
 class TimelineInterpreter(TimelineParserVisitor):
     def __init__(self):
         self.events = {}
@@ -40,6 +48,22 @@ class TimelineInterpreter(TimelineParserVisitor):
         self.relationships = {}
         self.already_exported = set()
         self.validation_errors = []
+
+    def add_validation_error(self, error_msg, ctx=None):
+        """Add a validation error and raise an exception to stop execution"""
+        line = None
+        column = None
+        if ctx and hasattr(ctx, 'start') and ctx.start:
+            line = ctx.start.line
+            column = ctx.start.column
+
+        error = {
+            'message': error_msg,
+            'line': line,
+            'column': column
+        }
+        self.validation_errors.append(error)
+        raise ValidationError(error_msg, line, column)
 
     def format_date(self, date_dict):
         """Convert a date dictionary to a formatted string."""
@@ -55,21 +79,6 @@ class TimelineInterpreter(TimelineParserVisitor):
             return str(year)
         return None
 
-    # def parse_date_string(self, date_str):
-    #     """Convert a date string back to a dictionary format."""
-    #     if not isinstance(date_str, str):
-    #         return date_str
-    #
-    #     parts = date_str.split('-')
-    #     if len(parts) == 3:  # day-month-year
-    #         return {"year": int(parts[2]), "month": int(parts[1]), "day": int(parts[0])}
-    #     elif len(parts) == 2:  # month-year
-    #         return {"year": int(parts[1]), "month": int(parts[0])}
-    #     else:  # year only
-    #         try:
-    #             return {"year": int(date_str)}
-    #         except ValueError:
-    #             return date_str
 
     def visitYearLiteral(self, ctx: TimelineParser.YearLiteralContext):
         year = int(ctx.INT().getText())
@@ -101,7 +110,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         if ctx.dateCalculation():
             return self.visit(ctx.dateCalculation())
             
-        print("No matching date format found")
+        self.add_validation_error("No matching date format found")
         return None
 
     def visitEventDecl(self, ctx: TimelineParser.EventDeclContext):
@@ -110,7 +119,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         date_dict = self.visit(ctx.dateExpr())
         
         if not date_dict:
-            self.validation_errors.append(f"Invalid date format for event {event_id}")
+            self.add_validation_error(f"Invalid date format for event {event_id}", ctx)
             return None
             
         importance = "MEDIUM"
@@ -121,7 +130,7 @@ class TimelineInterpreter(TimelineParserVisitor):
             event = Event(event_id, title, date_dict, importance)
             self.events[event_id] = event
         except ValueError as e:
-            self.validation_errors.append(f"Error in event {event_id}: {str(e)}")
+            self.add_validation_error(f"Error in event {event_id}: {str(e)}", ctx)
             return None
 
     def visitPeriodDecl(self, ctx: TimelineParser.PeriodDeclContext):
@@ -131,7 +140,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         end_dict = self.visit(ctx.dateExpr(1))
         
         if not start_dict or not end_dict:
-            self.validation_errors.append(f"Invalid date format for period {period_id}")
+            self.add_validation_error(f"Invalid date format for period {period_id}", ctx)
             return None
             
         importance = "MEDIUM"
@@ -142,7 +151,7 @@ class TimelineInterpreter(TimelineParserVisitor):
             period = Period(period_id, title, start_dict, end_dict, importance)
             self.periods[period_id] = period
         except ValueError as e:
-            self.validation_errors.append(f"Error in period {period_id}: {str(e)}")
+            self.add_validation_error(f"Error in period {period_id}: {str(e)}", ctx)
             return None
 
     def visitTimelineDecl(self, ctx: TimelineParser.TimelineDeclContext):
@@ -157,14 +166,14 @@ class TimelineInterpreter(TimelineParserVisitor):
                 if component:
                     components.append(component)
                 else:
-                    self.validation_errors.append(f"Timeline component '{comp_id}' does not exist")
+                    self.add_validation_error(f"Timeline component '{comp_id}' does not exist", comp_ctx)
                     return None
                     
         try:
             timeline = Timeline(timeline_id, title, components)
             self.timelines[timeline_id] = timeline
         except ValueError as e:
-            self.validation_errors.append(f"Error in timeline {timeline_id}: {str(e)}")
+            self.add_validation_error(f"Error in timeline {timeline_id}: {str(e)}", ctx)
             return None
 
     def visitRelationshipDecl(self, ctx: TimelineParser.RelationshipDeclContext):
@@ -177,27 +186,24 @@ class TimelineInterpreter(TimelineParserVisitor):
         to_comp = self.events.get(to_id) or self.periods.get(to_id)
         
         if not from_comp:
-            self.validation_errors.append(f"Relationship 'from' component '{from_id}' does not exist")
+            self.add_validation_error(f"Relationship 'from' component '{from_id}' does not exist", ctx)
             return None
             
         if not to_comp:
-            self.validation_errors.append(f"Relationship 'to' component '{to_id}' does not exist")
+            self.add_validation_error(f"Relationship 'to' component '{to_id}' does not exist", ctx)
             return None
             
         try:
             relationship = Relationship(rel_id, from_comp, to_comp, rel_type)
             self.relationships[rel_id] = relationship
         except ValueError as e:
-            self.validation_errors.append(f"Error in relationship {rel_id}: {str(e)}")
+            self.add_validation_error(f"Error in relationship {rel_id}: {str(e)}", ctx)
             return None
 
     def visitExportStmt(self, ctx: TimelineParser.ExportStmtContext):
         export_id = ctx.ID().getText()
         
         if self.validation_errors:
-            print("Validation errors found:")
-            for error in self.validation_errors:
-                print(f"  - {error}")
             return None
             
         if export_id in self.already_exported:
@@ -216,7 +222,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         elif export_id in self.relationships:
             print(f"[Info] Relationship {export_id} marked for export")
         else:
-            print(f"[Warning] ID '{export_id}' not found.")
+            self.add_validation_error(f"ID '{export_id}' not found.", ctx)
             
         return None
 
@@ -313,7 +319,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         elif collection_id in self.periods:
             collection = [self.periods[collection_id]]
         else:
-            self.validation_errors.append(f"Cannot iterate over unknown collection '{collection_id}'")
+            self.add_validation_error(f"Cannot iterate over unknown collection '{collection_id}'", ctx)
             return None
             
         # Execute the for loop body for each item
@@ -349,7 +355,7 @@ class TimelineInterpreter(TimelineParserVisitor):
                        self.timelines.get(component_id))
         
         if not component:
-            self.validation_errors.append(f"Cannot modify unknown component '{component_id}'")
+            self.add_validation_error(f"Cannot modify unknown component '{component_id}'", ctx)
             return None
             
         # Process each property assignment
@@ -360,26 +366,21 @@ class TimelineInterpreter(TimelineParserVisitor):
             try:
                 if prop in ['date', 'start', 'end']:
                     # For date properties, we need to handle both dictionary and string formats
-                    # if isinstance(value, dict):
-                    # If it's already a dictionary (from dateExpr), use it directly
                     date_dict = value
-                    # else:
-                    #     # If it's a string (from a previous modification), parse it back to a dictionary
-                    #     date_dict = self.parse_date_string(value)
                     
                     # Create a new Date object with the dictionary
                     if isinstance(component, Event):
                         if prop == 'date':
                             component.date = Date(date_dict)
                         else:
-                            self.validation_errors.append("No such property for component of type Event")
+                            self.add_validation_error("No such property for component of type Event", ctx)
                     if isinstance(component, Period):
                         if prop == 'start':
                             component.start = Date(date_dict)
                         elif prop == 'end':
                             component.end = Date(date_dict)
                         else:
-                            self.validation_errors.append("No such property for component of type Period")
+                            self.add_validation_error("No such property for component of type Period", ctx)
                 else:
                     # For non-date properties, set them directly
                     if hasattr(component, prop):
@@ -387,18 +388,18 @@ class TimelineInterpreter(TimelineParserVisitor):
                     elif isinstance(component, dict):
                         component[prop] = value
             except (AttributeError, ValueError) as e:
-                self.validation_errors.append(f"Error modifying {component_id}.{prop}: {str(e)}")
+                self.add_validation_error(f"Error modifying {component_id}.{prop}: {str(e)}", ctx)
         
         # Validate the component after all modifications
         try:
             if isinstance(component, Period):
                 # Validate that start date is before end date
                 if component.start >= component.end:
-                    self.validation_errors.append(f"Invalid period {component_id}: start date ({component.start}) must be before end date ({component.end})")
+                    self.add_validation_error(f"Invalid period {component_id}: start date ({component.start}) must be before end date ({component.end})", ctx)
             elif isinstance(component, Event):
                 # Validate the date is properly set
                 if not component.date:
-                    self.validation_errors.append(f"Invalid event {component_id}: date is not set")
+                    self.add_validation_error(f"Invalid event {component_id}: date is not set", ctx)
             elif isinstance(component, Timeline):
                 # Validate timeline components
                 if hasattr(component, 'validate_components'):
@@ -406,8 +407,8 @@ class TimelineInterpreter(TimelineParserVisitor):
             elif isinstance(component, Relationship):
                 # Validate relationship components exist and are properly linked
                 if not component.from_component or not component.to_component:
-                    self.validation_errors.append(f"Invalid relationship {component_id}: missing from/to components")
+                    self.add_validation_error(f"Invalid relationship {component_id}: missing from/to components", ctx)
         except Exception as e:
-            self.validation_errors.append(f"Validation error in {component_id}: {str(e)}")
+            self.add_validation_error(f"Validation error in {component_id}: {str(e)}", ctx)
                 
         return None
