@@ -2,6 +2,9 @@ let currentData = null;
 let editor = null;
 
 function setupEditor() {
+    // Enable Ace language tools
+    ace.require("ace/ext/language_tools");
+    
     // Initialize Ace editor
     editor = ace.edit("code-editor");
     editor.setTheme("ace/theme/xcode");
@@ -11,6 +14,7 @@ function setupEditor() {
         fontSize: "14px",
         showPrintMargin: false,
         highlightActiveLine: true,
+        enableBasicAutocompletion: true,
         enableLiveAutocompletion: true,
         enableSnippets: true,
         tabSize: 4,
