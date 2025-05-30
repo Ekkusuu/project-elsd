@@ -311,5 +311,12 @@ async function visualize() {
     }
 }
 
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
+        visualize();
+    }
+});
+
 // Initialize the editor when the page loads
 document.addEventListener('DOMContentLoaded', setupEditor); 
