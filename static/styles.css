@@ -103,6 +103,36 @@ h2 {
     color: #6c757d;
 }
 
+/* Ace editor syntax highlighting */
+.ace_keyword {
+    color: #8959A8 !important;
+}
+
+.ace_support.ace_function {
+    color: #4271AE !important;
+}
+
+.ace_constant.ace_language {
+    color: #F5871F !important;
+}
+
+.ace_string {
+    color: #718C00 !important;
+}
+
+.ace_numeric {
+    color: #C99E00 !important;
+}
+
+.ace_comment {
+    color: #8E908C !important;
+    font-style: italic;
+}
+
+.ace_operator {
+    color: #3E999F !important;
+}
+
 /* Visualization content styles */
 .visualization-content {
     flex: 1;
