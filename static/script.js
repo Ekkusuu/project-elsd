@@ -38,6 +38,12 @@ function showError(message, errors = null, errorType = null) {
             errorHtml += '<ul>';
             errors.forEach(error => {
                 errorHtml += `<li>Line ${error.line}, Column ${error.column}: ${error.message}</li>`;
+                editor.getSession().setAnnotations([{
+                  row: error.line - 1,
+                  column: error.column,
+                  text: error.message,
+                  type: "error"
+                }]);
             });
             errorHtml += '</ul>';
         }
@@ -47,6 +53,12 @@ function showError(message, errors = null, errorType = null) {
             errorHtml += '<ul>';
             errors.forEach(error => {
                 const location = error.line ? ` at line ${error.line}${error.column ? `, column ${error.column}` : ''}` : '';
+                editor.getSession().setAnnotations([{
+                  row: error.line - 1,
+                  column: error.column,
+                  text: error.message,
+                  type: "error"
+                }]);
                 errorHtml += `<li>${error.message}${location}</li>`;
             });
             errorHtml += '</ul>';
@@ -73,6 +85,7 @@ function showError(message, errors = null, errorType = null) {
 }
 
 function clearError() {
+    editor.getSession().setAnnotations([]);
     document.getElementById('error-message').style.display = 'none';
 }
 
