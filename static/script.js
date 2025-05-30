@@ -24,6 +24,8 @@ function setupEditor() {
         showFoldWidgets: true
     });
 
+    editor.setBehavioursEnabled(true);
+
     // Set our custom Timeline mode
     editor.session.setMode("ace/mode/timeline");
 }

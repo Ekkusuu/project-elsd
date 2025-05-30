@@ -5,10 +5,12 @@ define('ace/mode/timeline', function(require, exports, module) {
     var TextMode = require("ace/mode/text").Mode;
     var TimelineHighlightRules = require("ace/mode/timeline_highlight_rules").TimelineHighlightRules;
     var TimelineCompletions = require("ace/mode/timeline_completions").TimelineCompletions;
+    var CstyleBehaviour = require("ace/mode/behaviour/cstyle").CstyleBehaviour;
 
     var Mode = function() {
         this.HighlightRules = TimelineHighlightRules;
         this.$completer = new TimelineCompletions();
+        this.$behaviour = new CstyleBehaviour();
     };
     oop.inherits(Mode, TextMode);
 
