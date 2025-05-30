@@ -2,6 +2,9 @@ let currentData = null;
 let editor = null;
 
 function setupEditor() {
+    // Enable Ace language tools
+    ace.require("ace/ext/language_tools");
+    
     // Initialize Ace editor
     editor = ace.edit("code-editor");
     editor.setTheme("ace/theme/xcode");
@@ -11,6 +14,7 @@ function setupEditor() {
         fontSize: "14px",
         showPrintMargin: false,
         highlightActiveLine: true,
+        enableBasicAutocompletion: true,
         enableLiveAutocompletion: true,
         enableSnippets: true,
         tabSize: 4,
@@ -19,6 +23,8 @@ function setupEditor() {
         displayIndentGuides: true,
         showFoldWidgets: true
     });
+
+    editor.setBehavioursEnabled(true);
 
     // Set our custom Timeline mode
     editor.session.setMode("ace/mode/timeline");
@@ -34,6 +40,12 @@ function showError(message, errors = null, errorType = null) {
             errorHtml += '<ul>';
             errors.forEach(error => {
                 errorHtml += `<li>Line ${error.line}, Column ${error.column}: ${error.message}</li>`;
+                editor.getSession().setAnnotations([{
+                  row: error.line - 1,
+                  column: error.column,
+                  text: error.message,
+                  type: "error"
+                }]);
             });
             errorHtml += '</ul>';
         }
@@ -43,6 +55,12 @@ function showError(message, errors = null, errorType = null) {
             errorHtml += '<ul>';
             errors.forEach(error => {
                 const location = error.line ? ` at line ${error.line}${error.column ? `, column ${error.column}` : ''}` : '';
+                editor.getSession().setAnnotations([{
+                  row: error.line - 1,
+                  column: error.column,
+                  text: error.message,
+                  type: "error"
+                }]);
                 errorHtml += `<li>${error.message}${location}</li>`;
             });
             errorHtml += '</ul>';
@@ -69,6 +87,7 @@ function showError(message, errors = null, errorType = null) {
 }
 
 function clearError() {
+    editor.getSession().setAnnotations([]);
     document.getElementById('error-message').style.display = 'none';
 }
 
@@ -293,6 +312,13 @@ async function visualize() {
         showError('Failed to communicate with the server. Please try again.', null, 'network_error');
     }
 }
+
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
+        visualize();
+    }
+});
 
 // Initialize the editor when the page loads
 document.addEventListener('DOMContentLoaded', setupEditor); 

@@ -4,20 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timeline DSL Visualizer</title>
-    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="../static/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/theme-xcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/mode-text.min.js"></script>
-    <script src="static/timeline-mode.js"></script>
-    <style>
-        .ace_keyword { color: #8959A8 !important; }
-        .ace_support.ace_function { color: #4271AE !important; }
-        .ace_constant.ace_language { color: #F5871F !important; }
-        .ace_string { color: #718C00 !important; }
-        .ace_numeric { color: #C99E00 !important; }
-        .ace_comment { color: #8E908C !important; font-style: italic; }
-        .ace_operator { color: #3E999F !important; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ext-language_tools.js"></script>
+    <script src="../static/timeline-mode.js"></script>
 </head>
 <body>
     <div class="container">
@@ -26,7 +18,7 @@
             <div class="editor-wrapper">
                 <div id="code-editor">{{ default_timeline }}</div>
             </div>
-            <button onclick="visualize()" class="button-visualize">Visualize</button>
+            <button onclick="visualize()" class="button-visualize">Visualize (Ctrl+Enter)</button>
         </div>
         <div class="visualization-section">
             <div class="result">
@@ -57,6 +49,6 @@
             </div>
         </div>
     </div>
-    <script src="static/script.js"></script>
+    <script src="../static/script.js"></script>
 </body>
 </html> 
