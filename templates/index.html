@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timeline DSL Visualizer</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>Timeline DSL</title>
     <link rel="stylesheet" href="../static/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/theme-xcode.min.js"></script>
@@ -25,6 +26,10 @@
                 <div id="component-selector" class="component-selector" style="display: none;"></div>
                 <div id="error-message" class="error" style="display: none;"></div>
                 <div id="visualization-content" class="visualization-content" style="display: none;">
+                    <div class="loading-overlay">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Generating visualization...</div>
+                    </div>
                     <div class="tab-header">
                         <div class="tab-selector">
                             <button id="json-tab-btn" class="tab-button active" onclick="switchTab('json')">JSON</button>

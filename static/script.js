@@ -281,6 +281,14 @@ async function visualize() {
         clearError();
         const code = editor.getValue();
         
+        // Show loading overlay
+        const loadingOverlay = document.querySelector('.loading-overlay');
+        loadingOverlay.classList.add('active');
+        
+        // Hide other elements while loading
+        document.getElementById('component-selector').style.display = 'none';
+        document.getElementById('visualization-content').style.display = 'block';
+        
         const response = await fetch('/visualize', {
             method: 'POST',
             headers: {
@@ -290,6 +298,9 @@ async function visualize() {
         });
         
         const data = await response.json();
+        
+        // Hide loading overlay
+        loadingOverlay.classList.remove('active');
         
         if (!data.success) {
             if (data.error_type === 'lexer_error' || data.error_type === 'parser_error') {
@@ -305,10 +316,11 @@ async function visualize() {
         }
 
         clearError();
-
         createComponentSelector(data.components);
         
     } catch (error) {
+        // Hide loading overlay in case of error
+        document.querySelector('.loading-overlay').classList.remove('active');
         showError('Failed to communicate with the server. Please try again.', null, 'network_error');
     }
 }

@@ -1,17 +1,14 @@
 import traceback
-
 from flask import Flask, render_template, request, jsonify
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
 from src.TimelineLexer import TimelineLexer
 from src.TimelineParser import TimelineParser
 from src.TimelineInterpreter import TimelineInterpreter, ValidationError
-import os
+from waitress import serve
 import base64
-from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')
-import webbrowser
 
 app = Flask(__name__)
 
