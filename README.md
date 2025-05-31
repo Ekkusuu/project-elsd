@@ -10,6 +10,17 @@ A domain-specific language for creating and visualizing historical timelines wit
 - Control structures for timeline manipulation (if, else, for loops)
 - Export functionality for timeline integration
 
+## Live Demo
+
+The application is deployed and available at: https://timeline-dsl.onrender.com/
+
+Please note:
+- The deployed version runs on limited resources (0.1 CPU), so it may be slower than running locally
+- The app goes into sleep mode after 15 minutes of inactivity
+- First access after sleep mode may take around 1 minute for the app to start up
+
+If you need faster performance or consistent availability, consider running the application locally using the instructions below.
+
 ## Installation
 
 1. Clone the repository:
