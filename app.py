@@ -1,5 +1,4 @@
 import traceback
-
 from flask import Flask, render_template, request, jsonify
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
@@ -7,12 +6,9 @@ from src.TimelineLexer import TimelineLexer
 from src.TimelineParser import TimelineParser
 from src.TimelineInterpreter import TimelineInterpreter, ValidationError
 from waitress import serve
-import os
 import base64
-from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')
-import webbrowser
 
 app = Flask(__name__)
 
@@ -178,5 +174,4 @@ def visualize():
 if __name__ == '__main__':
     # if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
     #     webbrowser.open('http://127.0.0.1:5000/')
-    # app.run()
-    serve(app, host='localhost', port=8000)
+    app.run(debug=True)
