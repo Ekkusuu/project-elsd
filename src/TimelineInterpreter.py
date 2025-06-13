@@ -48,7 +48,6 @@ class TimelineInterpreter(TimelineParserVisitor):
         self.periods = {}
         self.timelines = {}
         self.relationships = {}
-        self.already_exported = set()
         self.exported_components = []  # Store rendered components immediately
         self.interpretation_errors = []
 
@@ -227,7 +226,7 @@ class TimelineInterpreter(TimelineParserVisitor):
             component = self._loop_vars[export_id]
             # Use the component's actual ID instead of the loop variable name
             actual_component_id = component.id if hasattr(component, 'id') else export_id
-            
+
             # Determine component type
             if hasattr(component, '__class__'):
                 class_name = component.__class__.__name__
@@ -239,7 +238,7 @@ class TimelineInterpreter(TimelineParserVisitor):
                     component_type = 'timeline'
                 elif class_name == 'Relationship':
                     component_type = 'relationship'
-        
+
         # Check global components if not found in loop variables
         if not component:
             if export_id in self.timelines:
@@ -259,29 +258,19 @@ class TimelineInterpreter(TimelineParserVisitor):
             self.add_error(f"ID '{export_id}' not found.", ctx, ExceptionType=LookupError)
             return None
 
-        if hasattr(self, '_loop_vars') and export_id in self._loop_vars:
-            if actual_component_id in self.already_exported:
-                print(f"[Info] Skipping already exported component: {actual_component_id}")
-                return None
-        else:
-            if export_id in self.already_exported:
-                print(f"[Info] Skipping already exported: {export_id}")
-                return None
-        
-        self.already_exported.add(actual_component_id)
+        display_id = self._generate_unique_display_id(actual_component_id)
 
         try:
-            component_data = self._render_component(component, component_type, actual_component_id)
+            component_data = self._render_component(component, component_type, display_id)
             if component_data:
                 self.exported_components.append(component_data)
-                print(f"[Info] {component_type.capitalize()} {actual_component_id} exported and rendered")
+                print(f"[Info] {component_type.capitalize()} {actual_component_id} exported and rendered as {display_id}")
         except Exception as e:
             self.add_error(f"Error rendering component '{actual_component_id}': {str(e)}", ctx, ExceptionType=RuntimeError)
             
         return None
 
     def _render_component(self, component, component_type, component_id):
-        """Render a component to the format expected by the Flask app"""
         try:
             if component_type == 'timeline':
                 return {
@@ -513,3 +502,23 @@ class TimelineInterpreter(TimelineParserVisitor):
             self.add_error(f"Validation error in {component_id}: {str(e)}", ctx, ExceptionType=ValidationError)
                 
         return None
+
+    def _generate_unique_display_id(self, base_id):
+        """generate unique display ID for the component"""
+        existing_count = 0
+        for exported_comp in self.exported_components:
+            if exported_comp['id'].startswith(base_id):
+                if exported_comp['id'] == base_id:
+                    existing_count = max(existing_count, 1)
+                elif exported_comp['id'].startswith(f"{base_id} (") and exported_comp['id'].endswith(")"):
+                    try:
+                        num_part = exported_comp['id'][len(base_id) + 2:-1]
+                        num = int(num_part)
+                        existing_count = max(existing_count, num + 1)
+                    except (ValueError, IndexError):
+                        pass
+
+        if existing_count == 0:
+            return base_id
+        else:
+            return f"{base_id} ({existing_count})"
