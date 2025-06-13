@@ -49,7 +49,7 @@ function showError(message, errors = null, errorType = null) {
             });
             errorHtml += '</ul>';
         }
-    } else if (errorType === 'validation_error' || errorType === 'name_error' || errorType === 'lookup_error' || errorType === 'type_error' ) {
+    } else if (errorType === 'validation_error' || errorType === 'name_error' || errorType === 'lookup_error' || errorType === 'type_error' || errorType === 'attribute_error' ) {
         errorHtml = `<h3>${message}</h3>`;
         if (errors && errors.length > 0) {
             errorHtml += '<ul>';
@@ -314,6 +314,8 @@ async function visualize() {
                 showError(data.error, data.lookup_errors, data.error_type);
             } else if (data.error_type === 'type_error') {
                 showError(data.error, data.type_errors, data.error_type);
+            } else if (data.error_type === 'attribute_error') {
+                showError(data.error, data.attribute_errors, data.error_type);
             } else {
                 showError(data.error, null, data.error_type);
             }

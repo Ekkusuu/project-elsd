@@ -121,7 +121,16 @@ def visualize():
                 'type_errors': interpreter.interpretation_errors,
                 'error_type': 'type_error'
             })
-        # Check if any exports were made
+        except AttributeError as e:
+            print(e)
+            return jsonify({
+                'success': False,
+                'error': 'Type Error:',
+                'attribute_errors': interpreter.interpretation_errors,
+                'error_type': 'attribute_error'
+            })
+
+
         if not interpreter.exported_components:
             return jsonify({
                 'success': False,
