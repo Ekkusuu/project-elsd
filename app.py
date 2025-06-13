@@ -96,8 +96,32 @@ def visualize():
             return jsonify({
                 'success': False,
                 'error': 'Validation Error:',
-                'validation_errors': interpreter.validation_errors,
+                'validation_errors': interpreter.interpretation_errors,
                 'error_type': 'validation_error'
+            })
+        except NameError as e:
+            print(e)
+            return jsonify({
+                'success': False,
+                'error': 'Name Error:',
+                'name_errors': interpreter.interpretation_errors,
+                'error_type': 'name_error'
+            })
+        except LookupError as e:
+            print(e)
+            return jsonify({
+                'success': False,
+                'error': 'Lookup Error:',
+                'lookup_errors': interpreter.interpretation_errors,
+                'error_type': 'lookup_error'
+            })
+        except TypeError as e:
+            print(e)
+            return jsonify({
+                'success': False,
+                'error': 'Type Error:',
+                'type_errors': interpreter.interpretation_errors,
+                'error_type': 'type_error'
             })
 
         # Check if any exports were made
