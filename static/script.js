@@ -49,7 +49,7 @@ function showError(message, errors = null, errorType = null) {
             });
             errorHtml += '</ul>';
         }
-    } else if (errorType === 'validation_error') {
+    } else if (errorType === 'validation_error' || errorType === 'name_error' || errorType === 'lookup_error' || errorType === 'type_error' ) {
         errorHtml = `<h3>${message}</h3>`;
         if (errors && errors.length > 0) {
             errorHtml += '<ul>';
@@ -74,7 +74,6 @@ function showError(message, errors = null, errorType = null) {
             }
         }
     } else {
-        // For other error types (like export_missing)
         errorHtml = `<p>${message}</p>`;
     }
 
@@ -309,6 +308,12 @@ async function visualize() {
                 showError(data.error, data.validation_errors, data.error_type);
             } else if (data.error_type === 'runtime_error') {
                 showError(data.error, data.error_details, data.error_type);
+            } else if (data.error_type === 'name_error') {
+                showError(data.error, data.name_errors, data.error_type);
+            } else if (data.error_type === 'lookup_error') {
+                showError(data.error, data.lookup_errors, data.error_type);
+            } else if (data.error_type === 'type_error') {
+                showError(data.error, data.type_errors, data.error_type);
             } else {
                 showError(data.error, null, data.error_type);
             }
