@@ -1,6 +1,7 @@
 from src.TimelineParser import TimelineParser
 from src.TimelineParserVisitor import TimelineParserVisitor
 from src.models import Event, Period, Timeline, Relationship, Date
+import base64
 
 
 def apply_comparison(left, right, op):
@@ -48,6 +49,7 @@ class TimelineInterpreter(TimelineParserVisitor):
         self.timelines = {}
         self.relationships = {}
         self.already_exported = set()
+        self.exported_components = []  # Store rendered components immediately
         self.interpretation_errors = []
 
     def add_error(self, error_msg, ctx=None, ExceptionType=Exception):
@@ -192,10 +194,8 @@ class TimelineInterpreter(TimelineParserVisitor):
 
         if rel_id in self.events.keys() or rel_id in self.timelines.keys() or rel_id in self.periods.keys():
             self.add_error(f"Identifier '{rel_id}' is already used", ctx, ExceptionType=NameError)
-
         from_comp = self.events.get(from_id) or self.periods.get(from_id)
         to_comp = self.events.get(to_id) or self.periods.get(to_id)
-        
         if not from_comp:
             self.add_error(f"Relationship 'from' component '{from_id}' does not exist", ctx, ExceptionType=ValidationError)
             return None
@@ -216,26 +216,106 @@ class TimelineInterpreter(TimelineParserVisitor):
         
         if self.interpretation_errors:
             return None
-            
-        if export_id in self.already_exported:
-            print(f"[Info] Skipping already exported: {export_id}")
-            return None
-            
-        self.already_exported.add(export_id)
 
-        if export_id in self.timelines:
-            print(f"[Info] Timeline {export_id} marked for export")
-        elif export_id in self.events:
-            print(f"[Info] Event {export_id} marked for export")
-        elif export_id in self.periods:
-            print(f"[Info] Period {export_id} marked for export")
-        elif export_id in self.relationships:
-            print(f"[Info] Relationship {export_id} marked for export")
-        # elif export_id in self._loop_vars.keys():
-        #
-        else:
-            self.add_error(f"ID '{export_id}' not found.", ctx, ExceptionType=LookupError)
+        # Find the component to export (check loop variables first, then global components)
+        component = None
+        component_type = None
+        actual_component_id = export_id  # Default to the export_id
+        
+        # Check loop variables first
+        if hasattr(self, '_loop_vars') and export_id in self._loop_vars:
+            component = self._loop_vars[export_id]
+            # Use the component's actual ID instead of the loop variable name
+            actual_component_id = component.id if hasattr(component, 'id') else export_id
             
+            # Determine component type
+            if hasattr(component, '__class__'):
+                class_name = component.__class__.__name__
+                if class_name == 'Event':
+                    component_type = 'event'
+                elif class_name == 'Period':
+                    component_type = 'period'
+                elif class_name == 'Timeline':
+                    component_type = 'timeline'
+                elif class_name == 'Relationship':
+                    component_type = 'relationship'
+        
+        # Check global components if not found in loop variables
+        if not component:
+            if export_id in self.timelines:
+                component = self.timelines[export_id]
+                component_type = 'timeline'
+            elif export_id in self.events:
+                component = self.events[export_id]
+                component_type = 'event'
+            elif export_id in self.periods:
+                component = self.periods[export_id]
+                component_type = 'period'
+            elif export_id in self.relationships:
+                component = self.relationships[export_id]
+                component_type = 'relationship'
+        
+        if not component:
+            self.add_error(f"ID '{export_id}' not found.", ctx, ExceptionType=LookupError)
+            return None
+
+        if hasattr(self, '_loop_vars') and export_id in self._loop_vars:
+            if actual_component_id in self.already_exported:
+                print(f"[Info] Skipping already exported component: {actual_component_id}")
+                return None
+        else:
+            if export_id in self.already_exported:
+                print(f"[Info] Skipping already exported: {export_id}")
+                return None
+        
+        self.already_exported.add(actual_component_id)
+
+        try:
+            component_data = self._render_component(component, component_type, actual_component_id)
+            if component_data:
+                self.exported_components.append(component_data)
+                print(f"[Info] {component_type.capitalize()} {actual_component_id} exported and rendered")
+        except Exception as e:
+            self.add_error(f"Error rendering component '{actual_component_id}': {str(e)}", ctx, ExceptionType=RuntimeError)
+            
+        return None
+
+    def _render_component(self, component, component_type, component_id):
+        """Render a component to the format expected by the Flask app"""
+        try:
+            if component_type == 'timeline':
+                return {
+                    'id': component_id,
+                    'type': 'timeline',
+                    'title': component.title,
+                    'json': component.generate_json(),
+                    'image': base64.b64encode(component.generate_png_bytes()).decode('utf-8')
+                }
+            elif component_type == 'event':
+                return {
+                    'id': component_id,
+                    'type': 'event',
+                    'title': component.title,
+                    'json': component.to_json()
+                }
+            elif component_type == 'period':
+                return {
+                    'id': component_id,
+                    'type': 'period',
+                    'title': component.title,
+                    'json': component.to_json()
+                }
+            elif component_type == 'relationship':
+                return {
+                    'id': component_id,
+                    'type': 'relationship',
+                    'title': f"Relationship {component.id}",
+                    'json': component.to_json()
+                }
+        except Exception as e:
+            print(f"Error rendering {component_type} {component_id}: {str(e)}")
+            raise e
+        
         return None
 
     def visitIfStmt(self, ctx: TimelineParser.IfStmtContext):
