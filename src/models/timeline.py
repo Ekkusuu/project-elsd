@@ -207,9 +207,10 @@ class Timeline:
             margin *= 0.9
 
         # Ensure margin is between 2% and 5% of the span
-        min_margin = span * 0.02
-        max_margin = span * 0.06
-        margin = max(min_margin, min(margin, max_margin))
+        if span != 0:
+            min_margin = span * 0.02
+            max_margin = span * 0.06
+            margin = max(min_margin, min(margin, max_margin))
         
         return min_decimal - margin, max_decimal + margin
 
@@ -467,7 +468,8 @@ class Timeline:
         
         # Get extended range with margins for consistent ticks
         xlim_min, xlim_max = self._get_date_range_with_margin(min_date, max_date, interval_type)
-        ax.set_xlim(xlim_min, xlim_max)
+        if xlim_max != xlim_min:
+            ax.set_xlim(xlim_min, xlim_max)
 
         # Separate components by type
         events_and_periods = [comp for comp in self.components if isinstance(comp, (Event, Period))]
