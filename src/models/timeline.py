@@ -477,7 +477,8 @@ class Timeline:
 
         # Calculate levels for events and periods
         levels = self._calculate_levels(events_and_periods)
-
+        min_y, max_y = min(levels.values()), max(levels.values())
+        ax.set_ylim(min(-3, min_y), max(3, max_y))
         # Get periods and calculate their positions
         periods = [comp for comp in events_and_periods if isinstance(comp, Period)]
         period_positions = self._calculate_period_positions(periods)
@@ -507,8 +508,8 @@ class Timeline:
         
         # Calculate tick height as percentage of axis length
         axis_length = xlim_max - xlim_min
-        tick_height = axis_length * 0.006  # 0.6% of axis length
-        
+        tick_height = 0.09  # this seems to look good
+
         # Add tick marks and labels
         for pos, label in ticks:
             if xlim_min <= pos <= xlim_max:
