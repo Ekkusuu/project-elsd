@@ -449,7 +449,7 @@ class Timeline:
                 
         return ticks
 
-    def _calculate_levels(self, components):
+    def _calculate_levels(self, components, axis_length):
         # Filter out relationships, only handle events and periods
         event_period_comps = [comp for comp in components if isinstance(comp, (Event, Period))]
         
@@ -465,9 +465,9 @@ class Timeline:
         levels = {}
         
         # Constants for layout
-        EVENT_LABEL_WIDTH = 2  # Approximate width of event label in years
-        PERIOD_LABEL_WIDTH = 3  # Approximate width of period label in years
-        MIN_GAP = 1  # Minimum gap between labels in years
+        EVENT_LABEL_WIDTH = axis_length // 10  # Approximate width of event label in years
+        PERIOD_LABEL_WIDTH = axis_length // 10  # Approximate width of period label in years
+        MIN_GAP = axis_length // 20  # Minimum gap between labels in years
         
         # Helper function to check overlap between any two labels
         def has_overlap(pos1, width1, pos2, width2, level1, level2):
@@ -583,7 +583,7 @@ class Timeline:
         relationships = [comp for comp in self.components if isinstance(comp, Relationship)]
 
         # Calculate levels for events and periods
-        levels = self._calculate_levels(events_and_periods)
+        levels = self._calculate_levels(events_and_periods, axis_length)
         min_y, max_y = min(levels.values()), max(levels.values())
         ax.set_ylim(min(-3, min_y), max(3, max_y))
         # Get periods and calculate their positions
