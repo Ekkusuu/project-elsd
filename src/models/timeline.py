@@ -365,7 +365,7 @@ class Timeline:
         
         # Helper function to check overlap between any two labels
         def has_overlap(pos1, width1, pos2, width2, level1, level2):
-            if abs(level1 - level2) > 1:  # If levels are far apart, no overlap
+            if abs(level1 - level2) > 0.75:  # If levels are far apart, no overlap
                 return False
             # Check for overlap considering widths
             return not (pos1 + width1/2 + MIN_GAP < pos2 - width2/2 or 
@@ -422,7 +422,7 @@ class Timeline:
             
             # Check overlaps with all existing labels
             while check_position_overlap(mid_year, PERIOD_LABEL_WIDTH, current_level, label_positions):
-                current_level -= 1
+                current_level -= 0.1
             
             # Add period label position to the list
             label_positions.append((mid_year, PERIOD_LABEL_WIDTH, current_level))
