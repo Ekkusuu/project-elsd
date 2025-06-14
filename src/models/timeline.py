@@ -272,24 +272,7 @@ class Timeline:
         else:
             margin = 10  # Default fallback
 
-        # Scale down the margin for larger spans to avoid excessive padding
-        if span > 100:
-            margin *= 0.5
-        elif span > 50:
-            margin *= 0.6
-        elif span > 20:
-            margin *= 0.7
-        elif span > 10:
-            margin *= 0.8
-        elif span > 5:
-            margin *= 0.9
-
-        # Ensure margin is between 2% and 5% of the span
-        if span != 0:
-            min_margin = span * 0.02
-            max_margin = span * 0.06
-            margin = max(min_margin, min(margin, max_margin))
-        
+        margin *= 1.2
         return min_decimal - margin, max_decimal + margin
 
     def _generate_ticks(self, min_date, max_date, interval_type):
@@ -591,8 +574,9 @@ class Timeline:
         
         # Get extended range with margins for consistent ticks
         xlim_min, xlim_max = self._get_date_range_with_margin(min_date, max_date, interval_type)
+        axis_length = abs(xlim_max - xlim_min)
         if xlim_max != xlim_min:
-            ax.set_xlim(xlim_min, xlim_max)
+            ax.set_xlim(xlim_min, xlim_max + 0.02 * axis_length)
 
         # Separate components by type
         events_and_periods = [comp for comp in self.components if isinstance(comp, (Event, Period))]
@@ -619,8 +603,12 @@ class Timeline:
             mutation_scale=15,
             linewidth=1.5
         )
-        ax.annotate('', xy=(xlim_max, 0), xytext=(xlim_max - (xlim_max - xlim_min) * 0.02, 0),
-                   arrowprops=arrow_props, zorder=2)
+        ax.annotate(
+            '',
+            xy=(xlim_max + axis_length * 0.02, 0),
+            xytext=(xlim_max - axis_length * 0.02, 0),
+            arrowprops=arrow_props, zorder=2
+        )
 
         # Create temporary Date objects for the extended range
         extended_min_date = Date({"year": int(xlim_min), "month": 1, "day": 1})
@@ -628,14 +616,12 @@ class Timeline:
         
         # Generate and add tick marks with the extended range
         ticks = self._generate_ticks(extended_min_date, extended_max_date, interval_type)
-        
-        # Calculate tick height as percentage of axis length
-        axis_length = xlim_max - xlim_min
+
         tick_height = 0.09  # this seems to look good
 
         # Add tick marks and labels
         for pos, label in ticks:
-            if xlim_min <= pos <= xlim_max:
+            if xlim_min < pos < xlim_max:  # in order not to draw ticks directly on axis edge
                 # Draw tick mark
                 ax.plot([pos, pos], [-tick_height, tick_height], color='black', linewidth=1, zorder=1)
                 
@@ -647,7 +633,7 @@ class Timeline:
                           ha='center',
                           va='top',
                           fontsize=9,
-                          rotation=45 if interval_type in ["months", "months_selective", "days"] else 0,
+                          # rotation=45,
                           zorder=1)
 
         # Sort components for drawing
