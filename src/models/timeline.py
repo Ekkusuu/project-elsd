@@ -143,12 +143,11 @@ class Timeline:
         return min(dates), max(dates)
 
     def _calculate_tick_interval(self, min_date, max_date):
-        """Calculate appropriate tick interval based on date range"""
+        """Calculate appropriate tick interval based on date range to maintain 10-15 ticks"""
         total_span = self._date_to_decimal(max_date) - self._date_to_decimal(min_date)
         
-        # Calculate desired number of ticks based on timeline width
-        # Aim for roughly one tick every 100 pixels (assuming default figure width of 15 inches * 100 DPI)
-        target_ticks = 15 * 100 / 100  # 15 inches * 100 DPI / 100 pixels per tick
+        # Target number of ticks for optimal density (10-15 ticks)
+        TARGET_TICKS = 15
         
         if total_span <= 1/12:  # Less than a month
             if total_span <= 1/24:  # Less than 15 days
@@ -166,10 +165,51 @@ class Timeline:
             if total_span <= 10:  # 5-10 years
                 return "years_dense"  # Show all years
             return "years"  # Show every other year
-        elif total_span <= 100:  # 20-100 years
+        elif total_span <= 50:  # 20-50 years
             return "years_5"  # Show every 5 years
-        else:
+        elif total_span <= 100:  # 50-100 years
             return "years_10"  # Show every 10 years
+        else:
+            # For spans > 100 years, calculate step to maintain target tick density
+            ideal_step = total_span / TARGET_TICKS
+            
+            # Round to nice intervals
+            if ideal_step <= 25:
+                return "years_25"
+            elif ideal_step <= 50:
+                return "years_50"
+            elif ideal_step <= 100:
+                return "years_100"
+            elif ideal_step <= 250:
+                return "years_250"
+            elif ideal_step <= 500:
+                return "years_500"
+            elif ideal_step <= 1000:
+                return "years_1000"
+            elif ideal_step <= 2500:
+                return "years_2500"
+            elif ideal_step <= 5000:
+                return "years_5000"
+            elif ideal_step <= 10000:
+                return "years_10000"
+            elif ideal_step <= 25000:
+                return "years_25000"
+            elif ideal_step <= 50000:
+                return "years_50000"
+            elif ideal_step <= 100000:
+                return "years_100000"
+            elif ideal_step <= 250000:
+                return "years_250000"
+            elif ideal_step <= 500000:
+                return "years_500000"
+            elif ideal_step <= 1000000:
+                return "years_1000000"
+            elif ideal_step <= 10000000:
+                return "years_10000000"
+            elif ideal_step <= 100000000:
+                return "years_100000000"
+            else:
+                return "years_1000000000"  # For billion+ year spans
 
     def _get_date_range_with_margin(self, min_date, max_date, interval_type):
         """Calculate the extended date range to ensure ticks before and after components"""
@@ -191,8 +231,46 @@ class Timeline:
             margin = 2
         elif interval_type == "years_5":
             margin = 5
-        else:  # years_10
+        elif interval_type == "years_10":
             margin = 10
+        elif interval_type == "years_25":
+            margin = 25
+        elif interval_type == "years_50":
+            margin = 50
+        elif interval_type == "years_100":
+            margin = 100
+        elif interval_type == "years_250":
+            margin = 250
+        elif interval_type == "years_500":
+            margin = 500
+        elif interval_type == "years_1000":
+            margin = 1000
+        elif interval_type == "years_2500":
+            margin = 2500
+        elif interval_type == "years_5000":
+            margin = 5000
+        elif interval_type == "years_10000":
+            margin = 10000
+        elif interval_type == "years_25000":
+            margin = 25000
+        elif interval_type == "years_50000":
+            margin = 50000
+        elif interval_type == "years_100000":
+            margin = 100000
+        elif interval_type == "years_250000":
+            margin = 250000
+        elif interval_type == "years_500000":
+            margin = 500000
+        elif interval_type == "years_1000000":
+            margin = 1000000
+        elif interval_type == "years_10000000":
+            margin = 10000000
+        elif interval_type == "years_100000000":
+            margin = 100000000
+        elif interval_type == "years_1000000000":
+            margin = 1000000000
+        else:
+            margin = 10  # Default fallback
 
         # Scale down the margin for larger spans to avoid excessive padding
         if span > 100:
@@ -312,23 +390,60 @@ class Timeline:
                     else:
                         label = f"{current.month}/{current.year}"
                     ticks.append((pos, label))
-                
-                # Move to next month
+                  # Move to next month
                 if current.month == 12:
                     current = Date({"year": current.year + 1, "month": 1})
                 else:
                     current = Date({"year": current.year, "month": current.month + 1})
                     
-        elif interval_type in ["years", "years_dense", "years_5", "years_10"]:
-            # Determine step size
+        elif interval_type.startswith("years"):
+            # Extract step size from interval type
             if interval_type == "years_dense":
                 step = 1
             elif interval_type == "years":
                 step = 2
             elif interval_type == "years_5":
                 step = 5
-            else:  # years_10
+            elif interval_type == "years_10":
                 step = 10
+            elif interval_type == "years_25":
+                step = 25
+            elif interval_type == "years_50":
+                step = 50
+            elif interval_type == "years_100":
+                step = 100
+            elif interval_type == "years_250":
+                step = 250
+            elif interval_type == "years_500":
+                step = 500
+            elif interval_type == "years_1000":
+                step = 1000
+            elif interval_type == "years_2500":
+                step = 2500
+            elif interval_type == "years_5000":
+                step = 5000
+            elif interval_type == "years_10000":
+                step = 10000
+            elif interval_type == "years_25000":
+                step = 25000
+            elif interval_type == "years_50000":
+                step = 50000
+            elif interval_type == "years_100000":
+                step = 100000
+            elif interval_type == "years_250000":
+                step = 250000
+            elif interval_type == "years_500000":
+                step = 500000
+            elif interval_type == "years_1000000":
+                step = 1000000
+            elif interval_type == "years_10000000":
+                step = 10000000
+            elif interval_type == "years_100000000":
+                step = 100000000
+            elif interval_type == "years_1000000000":
+                step = 1000000000
+            else:
+                step = 10  # Default fallback
                 
             # Calculate the first tick before min_date
             start_year = min_date.year - (min_date.year % step) - step
@@ -338,7 +453,15 @@ class Timeline:
             # Generate ticks
             for year in range(start_year, end_year + 1, step):
                 pos = year
-                label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
+                # Format labels appropriately for different scales
+                if step >= 1000000000:
+                    label = f"{abs(year/1000000000):.1f}B {'BCE' if year < 0 else 'CE'}"
+                elif step >= 1000000:
+                    label = f"{abs(year/1000000):.1f}M {'BCE' if year < 0 else 'CE'}"
+                elif step >= 1000:
+                    label = f"{abs(year/1000):.1f}K {'BCE' if year < 0 else 'CE'}"
+                else:
+                    label = f"{abs(year)} {'BCE' if year < 0 else 'CE'}"
                 ticks.append((pos, label))
                 
         return ticks
