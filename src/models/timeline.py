@@ -561,6 +561,28 @@ class Timeline:
             
         return period_positions
 
+    def _get_arc_midpoint(self, ax, p1, p2, rad):
+        patch = patches.FancyArrowPatch(
+            p1, p2,
+            connectionstyle=f"arc3,rad={rad}",
+            arrowstyle='-',
+            mutation_scale=0,
+            shrinkA=0,
+            shrinkB=0
+        )
+        patch.set_figure(ax.get_figure())
+        patch.axes = ax
+        patch.set_transform(ax.transData)
+
+        # interpolate path
+        path = patch.get_path()
+
+        interpolated = path.interpolated(steps=100)
+        points = interpolated.vertices
+
+        mid_idx = len(points) // 2
+        return points[mid_idx]
+
     def generate_png_bytes(self) -> bytes:
         """Generate the timeline visualization and return it as bytes."""
         # Create figure with extra space at bottom for legend
@@ -828,21 +850,26 @@ class Timeline:
 
             dx = (to_pos - from_pos) / x_scale
             dy = to_y - from_y / y_scale
-            diagonal = np.hypot(dx, dy)
 
             # Calculate angle of the line for label rotation
             angle = np.degrees(np.arctan2(dy, dx))
-            print(dx, dy, angle)
+
             # Keep angle between -90 and 90 degrees for readability
             if angle > 90:
                 angle -= 180
             elif angle < -90:
                 angle += 180
 
-            # Draw the arrow with a curved path
-            rad = 0.2 + abs(to_y - from_y) * 0.05  # More curve for larger vertical distances
-            rad = min(rad, 0.4)  # Cap the maximum curvature
+            # # Draw the arrow with a curved path
+            # rad = 0.2 + abs(to_y - from_y) * 0.05  # More curve for larger vertical distances
+            # rad = min(rad, 0.4)  # Cap the maximum curvature
 
+            # from_p = (from_pos, from_y)
+            # to_p = (to_pos, to_y)
+            # curve_mid_x, curve_mid_y = self._get_arc_midpoint(ax, from_p, to_p, rad)
+
+            # curve_mid_x = (curve_mid_x + mid_x) / 2
+            # curve_mid_y = (curve_mid_y + mid_y) / 2
 
             ax.annotate(
                 "",
@@ -852,7 +879,7 @@ class Timeline:
                     arrowstyle=arrow_style,
                     color='gray',
                     alpha=0.6,
-                    # connectionstyle=f"arc3,rad={rad}"
+                    # connectionstyle=f"arc3,rad={rad}"  # straight line is easier
                 ),
                 zorder=1
             )
@@ -862,7 +889,8 @@ class Timeline:
             rel_label = rel.type.replace('_', '-').title()
             ax.annotate(
                 rel_label,
-                xy=(mid_x, mid_y),  # Use the curve midpoint
+                # xy=(curve_mid_x, curve_mid_y),  # Use the curve midpoint
+                xy=(mid_x, mid_y),  # Use the actual midpoint for easier math
                 xytext=(0, 0),  # Small offset above the line
                 textcoords='offset points',
                 ha='center',
@@ -881,8 +909,8 @@ class Timeline:
             )
 
         # Configure axes
-        # ax.yaxis.set_visible(False)
-        # ax.xaxis.set_visible(False)  # Hide the original x-axis
+        ax.yaxis.set_visible(False)
+        ax.xaxis.set_visible(False)  # Hide the original x-axis
         ax.spines[['left', 'top', 'right', 'bottom']].set_visible(False)
         
         # Set title
