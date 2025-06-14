@@ -272,7 +272,7 @@ class Timeline:
         else:
             margin = 10  # Default fallback
 
-        margin *= 1.2
+        margin *= 1.1
         return min_decimal - margin, max_decimal + margin
 
     def _generate_ticks(self, min_date, max_date, interval_type):
@@ -812,9 +812,27 @@ class Timeline:
             # Calculate midpoint for label
             mid_x = (from_pos + to_pos) / 2
             mid_y = (from_y + to_y) / 2
-            
+
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+
+            # Get figure dimensions in pixels
+            fig = ax.get_figure()
+            fig.canvas.draw()
+            bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+            width, height = bbox.width, bbox.height
+
+            # Calculate axis scaling factors (data units per screen unit)
+            x_scale = (xlim[1] - xlim[0]) / width
+            y_scale = (ylim[1] - ylim[0]) / height
+
+            dx = (to_pos - from_pos) / x_scale
+            dy = to_y - from_y / y_scale
+            diagonal = np.hypot(dx, dy)
+
             # Calculate angle of the line for label rotation
-            angle = np.degrees(np.arctan2(to_y - from_y, to_pos - from_pos))
+            angle = np.degrees(np.arctan2(dy, dx))
+            print(dx, dy, angle)
             # Keep angle between -90 and 90 degrees for readability
             if angle > 90:
                 angle -= 180
@@ -822,55 +840,49 @@ class Timeline:
                 angle += 180
 
             # Draw the arrow with a curved path
-            # Adjust curvature based on vertical distance
             rad = 0.2 + abs(to_y - from_y) * 0.05  # More curve for larger vertical distances
             rad = min(rad, 0.4)  # Cap the maximum curvature
 
-            # Calculate the actual midpoint on the curve using the control point
-            # The control point of the quadratic bezier curve is perpendicular to the midpoint
-            # at a distance determined by the rad parameter
-            dx = to_pos - from_pos
-            dy = to_y - from_y
-            control_x = mid_x + dy * rad  # Control point x
-            control_y = mid_y - dx * rad  # Control point y
-            
-            # The point at t=0.5 on a quadratic bezier curve is the actual midpoint
-            curve_mid_x = 0.25 * from_pos + 0.5 * control_x + 0.25 * to_pos
-            curve_mid_y = 0.25 * from_y + 0.5 * control_y + 0.25 * to_y
-            
-            ax.annotate("",
-                       xy=(to_pos, to_y),
-                       xytext=(from_pos, from_y),
-                       arrowprops=dict(arrowstyle=arrow_style,
-                                     color='gray',
-                                     alpha=0.6,
-                                     connectionstyle=f"arc3,rad={rad}"),
-                       zorder=1)
+
+            ax.annotate(
+                "",
+                xy=(to_pos, to_y),
+                xytext=(from_pos, from_y),
+                arrowprops=dict(
+                    arrowstyle=arrow_style,
+                    color='gray',
+                    alpha=0.6,
+                    # connectionstyle=f"arc3,rad={rad}"
+                ),
+                zorder=1
+            )
 
             # Add relationship label at the curve midpoint
             # Convert relationship type to a more readable format
             rel_label = rel.type.replace('_', '-').title()
-            ax.annotate(rel_label,
-                       xy=(curve_mid_x, curve_mid_y),  # Use the curve midpoint
-                       xytext=(0, 3),  # Small offset above the line
-                       textcoords='offset points',
-                       ha='center',
-                       va='center',
-                       rotation=angle,
-                       fontsize=8,
-                       color='gray',
-                       alpha=0.8,
-                       bbox=dict(
-                           boxstyle='round,pad=0.2',
-                           fc='white',
-                           ec='none',
-                           alpha=0.8
-                       ),
-                       zorder=1)
+            ax.annotate(
+                rel_label,
+                xy=(mid_x, mid_y),  # Use the curve midpoint
+                xytext=(0, 0),  # Small offset above the line
+                textcoords='offset points',
+                ha='center',
+                va='center',
+                rotation=angle,
+                fontsize=8,
+                color='gray',
+                alpha=0.8,
+                bbox=dict(
+                    boxstyle='round,pad=0.2',
+                    fc='white',
+                    ec='none',
+                    alpha=0.8
+                ),
+                zorder=1
+            )
 
         # Configure axes
-        ax.yaxis.set_visible(False)
-        ax.xaxis.set_visible(False)  # Hide the original x-axis
+        # ax.yaxis.set_visible(False)
+        # ax.xaxis.set_visible(False)  # Hide the original x-axis
         ax.spines[['left', 'top', 'right', 'bottom']].set_visible(False)
         
         # Set title
