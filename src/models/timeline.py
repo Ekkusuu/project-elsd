@@ -634,7 +634,7 @@ class Timeline:
                 label_level = levels[component]
                 
                 # Draw connecting line from period to label
-                ax.vlines(mid_pos, y_pos + period_height/2, label_level, 
+                ax.vlines(mid_pos, y_pos, label_level,
                          color=color, linestyle='--', linewidth=1, alpha=0.5, zorder=2)
                 
                 ax.annotate(
