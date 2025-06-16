@@ -175,7 +175,7 @@ class TimelineInterpreter(TimelineParserVisitor):
                 if component:
                     components.append(component)
                 else:
-                    self.add_error(f"Timeline component '{comp_id}' does not exist", comp_ctx, ExceptionType=ValidationError)
+                    self.add_error(f"Timeline component '{comp_id}' does not exist", comp_ctx, ExceptionType=LookupError)
                     return None
                     
         try:
@@ -375,7 +375,7 @@ class TimelineInterpreter(TimelineParserVisitor):
                 elif isinstance(component, dict) and prop in component:
                     return component[prop]
                 else:
-                    self.add_error(f"No {prop} property for {obj_id}", ctx, ExceptionType=ValidationError)
+                    self.add_error(f"No {prop} property for {obj_id}", ctx, ExceptionType=AttributeError)
             return None
         elif ctx.STRING():
             return ctx.STRING().getText().strip('"')
@@ -497,14 +497,14 @@ class TimelineInterpreter(TimelineParserVisitor):
             elif isinstance(component, Relationship):
                 # Validate relationship components exist and are properly linked
                 if not component.from_component or not component.to_component:
-                    self.add_error(f"Invalid relationship {component_id}: missing from/to components", ctx, ExceptionType=ValidationError)
+                    self.add_error(f"Invalid relationship {component_id}: missing from/to components", ctx, ExceptionType=LookupError)
         except Exception as e:
             self.add_error(f"Validation error in {component_id}: {str(e)}", ctx, ExceptionType=ValidationError)
                 
         return None
 
     def _generate_unique_display_id(self, base_id):
-        """generate unique display ID for the component"""
+        """generate unique display ID for the component to be used in component selector in front-end"""
         existing_count = 0
         for exported_comp in self.exported_components:
             if exported_comp['id'].startswith(base_id):
