@@ -1,0 +1,27 @@
+event moonLanding {
+    title = "Apollo 11 Moon Landing";
+    date = 20-07-1969 CE;
+    importance = high;
+}
+
+period moonMissions {
+    title = "Moon Missions Era";
+    start = 1968 CE;
+    end = 1972 CE;
+    importance = medium;
+}
+
+relationship invalidRel {
+    from = moonLanding;
+
+    type = cause-effect;
+}
+
+timeline testTimeline {
+    title = "Test Timeline with Error";
+    moonLanding, moonMissions, invalidRel;
+}
+
+main {
+    export testTimeline;
+}
