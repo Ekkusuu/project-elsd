@@ -1,102 +1,74 @@
-event E1 {
-    title = "First Punic War Begins";
-    date = 12-265 BCE;
+event launchSputnik {
+    title = "Launch of Sputnik 1";
+    date = 04-10-1957 CE;
+    importance = high;
+}
+
+event apollo11Landing {
+    title = "Apollo 11 Moon Landing";
+    date = 20-07-1969 CE;
+    importance = high;
+}
+
+event challengerDisaster {
+    title = "Challenger Disaster";
+    date = 28-01-1986 CE;
     importance = low;
 }
 
-event E2 {
-    title = "Battle of Agrigentum";
-    date = 262 BCE;
-    importance = high;
-}
-
-event E3 {
-    title = "Battle of Mylae";
-    date = 12-12-260 BCE;
+event firstSpaceXLaunch {
+    title = "First Successful SpaceX Launch";
+    date = 28-09-2008 CE;
     importance = medium;
 }
 
-event E33 {
-    title = "Battle of Spylae";
-    date = 1-1-259 BCE;
+period earlySpaceRace {
+    title = "Early Space Race";
+    start = 1957 CE;
+    end = 1969 CE;
     importance = high;
 }
 
-event E4 {
-    title = "End of First Punic War";
-    date = 241 BCE;
-    importance = high;
-}
-
-period P1 {
-    title = "Roman Naval Dominance";
-    start = 260 BCE;
-    end = 241 BCE;
+period moonMissionEra {
+    title = "Moon Mission Era";
+    start = 1968 CE;
+    end = 1972 CE;
     importance = medium;
 }
 
-period P3 {
-    title = "TEST";
-    start = 250 BCE;
-    end = 246 BCE;
+period shuttleProgram {
+    title = "Space Shuttle Program";
+    start = 1981 CE;
+    end = 2011 CE;
     importance = high;
 }
 
-period P4 {
-    title = "TEST1";
-    start = 249 BCE;
-    end = 246 BCE;
-    importance = low;
+period privateSpaceflightEra {
+    title = "Private Spaceflight Era";
+    start = 2002 CE;
+    end = 2025 CE;
+    importance = medium;
 }
 
-period P5 {
-    title = "TEST2";
-    start = 255 BCE;
-    end = 242 BCE;
-}
-
-period P2 {
-    title = "Siege of Agrigentum";
-    start = 262 BCE;
-    end = 261 BCE;
-    importance = high;
-}
-
-relationship R1 {
-    from = E1;
-    to = E2;
+relationship spaceRaceTrigger {
+    from = launchSputnik;
+    to = earlySpaceRace;
     type = cause-effect;
 }
 
-relationship R2 {
-    from = E3;
-    to = P3;
-    type = precedes;
+relationship shuttleSafetyImpact {
+    from = challengerDisaster;
+    to = shuttleProgram;
+    type = "alters";
 }
 
-relationship R3 {
-    from = E3;
-    to = E4;
-    type = contemporaneous;
-}
-
-relationship R4 {
-    from = E3;
-    to = P1;
-    type = cause-effect;
-}
-
-relationship R7 {
-    from = P1;
-    to = P3;
-    type = includes;
-}
-
-timeline punicWar {
-    title = "First Punic War";
-    E1, E2, E3, E33, E4, P1, P2, P3, P4, P5, R1, R2, R7;
+timeline spaceExplorationTimeline {
+    title = "Timeline of Space Exploration";
+    launchSputnik, apollo11Landing, challengerDisaster, firstSpaceXLaunch,
+    earlySpaceRace, moonMissionEra, shuttleProgram, privateSpaceflightEra,
+    spaceRaceTrigger, shuttleSafetyImpact;
 }
 
 main {
-    export punicWar;
+    export spaceExplorationTimeline;
 }
