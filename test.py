@@ -3,7 +3,7 @@ from src import TimelineLexer, TimelineParser, TimelineInterpreter
 
 
 def main():
-    input_stream = FileStream("input.timeline", encoding='utf-8')
+    input_stream = FileStream("input_examples/default_input.timeline", encoding='utf-8')
     lexer = TimelineLexer(input_stream)
     tokens = CommonTokenStream(lexer)
     parser = TimelineParser(tokens)

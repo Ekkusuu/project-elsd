@@ -31,7 +31,7 @@ def index():
     # Read the default timeline content
     default_timeline = ""
     try:
-        with open('input.timeline', 'r') as f:
+        with open('input_examples/default_input.timeline', 'r') as f:
             default_timeline = f.read()
     except:
         pass
