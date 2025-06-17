@@ -1,0 +1,32 @@
+event E1 {
+    title = "Construction of the Great Pyramid of Giza";
+    date = 26-04-2560;
+    importance = high;
+}
+
+event E2 {
+    title = "First Olympic Games in Ancient Greece";
+    date = 01-07-776;
+    importance = medium;
+}
+
+event E3 {
+    title = "Founding of Rome";
+    date = 21-04-753;
+    importance = high;
+}
+
+event E4 {
+    title = "Death of Alexander the Great";
+    date = 10-06-323;
+    importance = low;
+}
+
+timeline ancientHistory {
+    title = "Ancient History Timeline";
+    E1, E2, E3, E4;
+}
+
+main {
+    export ancientHistory;
+}
