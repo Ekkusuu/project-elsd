@@ -1,0 +1,43 @@
+event challengerDisaster {
+    title = "Challenger Disaster";
+    date = 28-01-1986 CE;
+    importance = low;
+}
+
+event firstSpaceXLaunch {
+    title = "First Successful SpaceX Launch";
+    date = 28-09-2008 CE;
+    importance = medium;
+}
+
+period moonMissionEra {
+    title = "Moon Mission Era";
+    start = 1968 CE;
+    end = 1972 CE;
+    importance = medium;
+}
+
+period shuttleProgram {
+    title = "Space Shuttle Program";
+    start = 1981 CE;
+    end = 2011 CE;
+    importance = high;
+}
+
+
+timeline spaceExplorationTimeline {
+    title = "Timeline of Space Exploration";
+    challengerDisaster, firstSpaceXLaunch, moonMissionEra, shuttleProgram;
+}
+
+main {
+
+for item in spaceExplorationTimeline{
+    if (item.importance == medium){
+    modify item{
+        importance = high;
+    }
+}
+}
+    export spaceExplorationTimeline;
+}
