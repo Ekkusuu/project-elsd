@@ -1,0 +1,59 @@
+event E1 {
+    title = "Dante Alighieri completes Divine Comedy";
+    date = 14-09-1321;
+    importance = high;
+}
+
+event E2 {
+    title = "Gutenberg invents the Printing Press";
+    date = 23-02-1440;
+    importance = high;
+}
+
+event E3 {
+    title = "Leonardo da Vinci paints the Mona Lisa";
+    date = 15-04-1503;
+    importance = high;
+}
+
+event E4 {
+    title = "Michelangelo completes the Sistine Chapel ceiling";
+    date = 31-10-1512;
+    importance = high;
+}
+
+event E5 {
+    title = "Galileo Galilei's first telescope observations";
+    date = 25-08-1609;
+    importance = medium;
+}
+
+period P1 {
+    title = "Early Renaissance";
+    start = 01-01-1300;
+    end = 31-12-1450;
+    importance = high;
+}
+
+period P2 {
+    title = "High Renaissance";
+    start = 01-01-1450;
+    end = 31-12-1520;
+    importance = high;
+}
+
+period P3 {
+    title = "Late Renaissance";
+    start = 01-01-1520;
+    end = 31-12-1600;
+    importance = medium;
+}
+
+timeline renaissance {
+    title = "Renaissance Timeline";
+    E1, E2, E3, E4, E5, P1, P2, P3;
+}
+
+main {
+    export renaissance;
+}
