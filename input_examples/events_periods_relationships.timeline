@@ -1,0 +1,93 @@
+event E1 {
+    title = "Sputnik 1 Launch";
+    date = 04-10-1957;
+    importance = high;
+}
+
+event E2 {
+    title = "First Human in Space";
+    date = 12-04-1961;
+    importance = high;
+}
+
+event E3 {
+    title = "First American in Space";
+    date = 05-05-1961;
+    importance = high;
+}
+
+event E4 {
+    title = "First Moon Landing";
+    date = 20-07-1969;
+    importance = high;
+}
+
+event E5 {
+    title = "First Space Station Launch";
+    date = 19-04-1971;
+    importance = medium;
+}
+
+period P1 {
+    title = "Early Space Race";
+    start = 01-01-1957;
+    end = 31-12-1961;
+    importance = high;
+}
+
+period P2 {
+    title = "Moon Race";
+    start = 01-01-1962;
+    end = 31-12-1969;
+    importance = high;
+}
+
+period P3 {
+    title = "Space Station Era";
+    start = 01-01-1970;
+    end = 31-12-1975;
+    importance = medium;
+}
+
+relationship R1 {
+    from = P1;
+    to = E1;
+    type = includes;
+}
+
+relationship R2 {
+    from = P1;
+    to = E2;
+    type = includes;
+}
+
+relationship R3 {
+    from = P2;
+    to = E5;
+    type = cause-effect;
+}
+
+relationship R4 {
+    from = E4;
+    to = P2;
+    type = contemporaneous;
+}
+
+
+relationship R6 {
+    from = E1;
+    to = E2;
+    type = precedes;
+}
+
+
+
+
+timeline spaceRace {
+    title = "Space Race Timeline";
+    E1, E2, E3, E4, E5, P1, P2, P3,R1, R2, R3, R4, R6;
+}
+
+main {
+    export spaceRace;
+}
