@@ -1,0 +1,14 @@
+event romeFire {
+    title = "Great Fire of Rome";
+    date = "64 CE";
+    importance = high;
+};
+
+timeline fireTimeline {
+    title = "Fire Event";
+    romeFire;
+};
+
+main {
+    export fireTimeline;
+};

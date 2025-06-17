@@ -1,0 +1,13 @@
+event zeroYear {
+    title = "Zero Year";
+    date = 0 CE;
+};
+
+timeline calendarTimeline {
+    title = "Era Test";
+    zeroYear;
+};
+
+main {
+    export calendarTimeline;
+};

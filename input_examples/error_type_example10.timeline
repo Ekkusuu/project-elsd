@@ -1,0 +1,19 @@
+event caesarDeath {
+    title = "Assassination of Caesar";
+    date = 44 BCE;
+};
+
+relationship badLink {
+    from = unknownEvent;
+    to = caesarDeath;
+    type = precedes;
+};
+
+timeline assassinationTimeline {
+    title = "Caesar Events";
+    caesarDeath;
+};
+
+main {
+    export assassinationTimeline;
+};

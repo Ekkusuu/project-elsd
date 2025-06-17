@@ -1,0 +1,18 @@
+event deathOfCaesar {
+    title = "Death of Julius Caesar";
+    date = 44 BCE;
+};
+
+event deathOfCaesar {
+    title = "Duplicate";
+    date = 45 BCE;
+};
+
+timeline caesarTimeline {
+    title = "Caesar Events";
+    deathOfCaesar;
+};
+
+main {
+    export caesarTimeline;
+};

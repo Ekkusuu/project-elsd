@@ -1,0 +1,13 @@
+event invalidDate {
+    title = "Invalid Date";
+    date = 32-13-2020;
+};
+
+timeline dateCheck {
+    title = "Check Invalid Date";
+    invalidDate;
+};
+
+main {
+    export dateCheck;
+};

@@ -1,0 +1,14 @@
+event battleOfActium {
+    title = "Battle of Actium"
+    date = 31 BCE;
+    importance = high;
+};
+
+timeline warTimeline {
+    title = "Battle Events";
+    battleOfActium;
+};
+
+main {
+    export warTimeline;
+};

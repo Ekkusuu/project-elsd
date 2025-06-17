@@ -1,0 +1,14 @@
+period shortEmpire {
+    title = "Short Empire";
+    start = 30 BCE;
+    end = 40 BCE;
+};
+
+timeline imperialTimeline {
+    title = "Imperial Period";
+    shortEmpire;
+};
+
+main {
+    export imperialTimeline;
+};

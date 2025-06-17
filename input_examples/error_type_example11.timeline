@@ -1,0 +1,10 @@
+event caesarDeath {
+    title = "Assassination of Caesar";
+    date = 44 BCE;
+};
+
+main {
+    for e in caesarDeath {
+        export e;
+    }
+};

@@ -1,0 +1,15 @@
+timeline t1 {
+    title = "T1 Timeline";
+};
+
+timeline t2 {
+    title = "T2 Timeline";
+};
+
+main {
+    export t1;
+};
+
+main {
+    export t2;
+};
